@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEGEE 样品生命周期管理系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">M</span><div><strong>美集样品中心</strong><small>MEGEE SLM</small></div></div>
+    <nav id="nav">
+      <p>工作台</p>
+      <button class="active" data-page="dashboard"><span>▦</span>业务总览</button>
+      <button data-page="tasks"><span>✓</span>我的待办<b>8</b></button>
+      <p>样品业务</p>
+      <button data-page="samples"><span>□</span>样品库</button>
+      <button data-page="requests"><span>≡</span>客户索样</button>
+      <button data-page="development"><span>◇</span>开发样</button>
+      <button data-page="inventory"><span>▤</span>库存管理</button>
+      <button data-page="shipments"><span>➜</span>寄样管理</button>
+      <button data-page="charges"><span>¥</span>收费管理</button>
+      <p>质量批准</p>
+      <button data-page="pps"><span>◎</span>PPS 中心<b>3</b></button>
+      <button data-page="trace"><span>⌕</span>追溯中心</button>
+      <p>系统</p>
+      <button data-page="settings"><span>⚙</span>基础配置</button>
+    </nav>
+    <div class="sidebar-foot"><span class="avatar">林</span><div><strong>林知夏</strong><small>质量管理员</small></div></div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div class="crumb"><span>样品生命周期</span><i>/</i><strong id="crumbTitle">业务总览</strong></div>
+      <div class="top-actions"><button id="globalSearch">⌕</button><button class="notice">♢<i></i></button><span class="today">2026年6月12日</span></div>
+    </header>
+    <div id="app" class="content"></div>
+  </main>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head"><div><small id="drawerType">业务详情</small><h2 id="drawerTitle"></h2></div><button data-close>×</button></div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-actions"><button class="secondary" data-close>关闭</button><button class="primary" id="drawerAction">推进到下一节点</button></div>
+  </aside>
+
+  <div class="modal-wrap" id="modalWrap">
+    <div class="modal">
+      <div class="modal-head"><div><small>CREATE BUSINESS RECORD</small><h2 id="modalTitle">新建记录</h2></div><button data-modal-close>×</button></div>
+      <form id="businessForm"><div id="formFields"></div><div class="modal-actions"><button type="button" class="secondary" data-modal-close>取消</button><button type="submit" class="primary">保存并提交</button></div></form>
+    </div>
+  </div>
+  <div class="toast" id="toast"><span>✓</span><div><strong>操作成功</strong><small id="toastText"></small></div></div>
+  <script src="app.js"></script>
+</body>
+</html>
