@@ -121,7 +121,140 @@ async function loadDashboard() {
   renderStage();
   renderEvolution();
   await renderVersions();
+  await loadFieldOperations();
+  await renderApprovals();
   calculatePreviewPrice();
+}
+
+async function loadFieldOperations() {
+  const data = await request(`/catalog/skus/${SKU_ID}/operations`);
+  const select = $("#field-operation");
+  select.innerHTML = data.items.map((item) => `<option value="${item.part_id}|${item.process_type}" data-cycle="${item.standard_cycle_time}">${item.part_name} · ${item.process_type}（标准 ${Number(item.standard_cycle_time)}s）</option>`).join("");
+  select.disabled = !data.items.length;
+  $("#field-submit").disabled = !data.items.length;
+  if (data.items.length) $("#field-cycle").value = Number(data.items[0].standard_cycle_time);
+}
+
+async function submitFieldData(event) {
+  event.preventDefault();
+  const [partId, processType] = $("#field-operation").value.split("|");
+  const qty = Number($("#field-qty").value);
+  const goodQty = Number($("#field-good-qty").value);
+  if (goodQty > qty) return toast("良品数量不能大于投入数量");
+  const recordId = `FIELD-${Date.now()}`;
+  try {
+    await request("/cost-data/submissions", {
+      method: "POST",
+      body: JSON.stringify({
+        sku_id: SKU_ID,
+        submitted_by: $("#collector-name").value,
+        source_mode: "onsite",
+        production: {
+          record_id: recordId, part_id: partId, process_type: processType,
+          qty, good_qty: goodQty, scrap_qty: qty - goodQty,
+          cycle_time_actual: String($("#field-cycle").value), source: $("#field-stage").value
+        }
+      })
+    });
+    await renderApprovals();
+    toast(`现场数据 ${recordId} 已提交，等待审批`);
+  } catch (error) { toast(error.message); }
+}
+
+async function renderApprovals() {
+  const data = await request(`/cost-data/submissions?sku_id=${encodeURIComponent(SKU_ID)}&submission_status=pending`);
+  const list = $("#approval-list");
+  $("#pending-count").textContent = data.items.length;
+  if (!data.items.length) {
+    list.className = "approval-list empty-state";
+    list.textContent = "暂无待审批数据";
+    return;
+  }
+  list.className = "approval-list";
+  list.innerHTML = data.items.map((item) => {
+    const row = item.payload;
+    const yieldRate = Number(row.good_qty) / Number(row.qty) * 100;
+    return `<article class="approval-item" data-submission-id="${item.submission_id}">
+      <div class="approval-top"><strong>${escapeHtml(row.part_id)} · ${escapeHtml(row.process_type)}</strong><span>${item.source_mode === "import" ? "CSV 导入" : "现场录入"}</span></div>
+      <div class="approval-values"><div><small>投入</small><b>${row.qty}</b></div><div><small>良品</small><b>${row.good_qty}</b></div><div><small>良率</small><b>${yieldRate.toFixed(1)}%</b></div><div><small>周期</small><b>${Number(row.cycle_time_actual)}s</b></div></div>
+      <div class="approval-meta">${escapeHtml(item.submitted_by)} · ${escapeHtml(row.source.toUpperCase())} · ${new Date(item.submitted_at).toLocaleString("zh-CN")}</div>
+      <div class="approval-actions"><button class="mini-button reject" data-action="reject">驳回</button><button class="mini-button approve" data-action="approve">批准采用</button></div>
+    </article>`;
+  }).join("");
+  list.querySelectorAll("button").forEach((button) => button.addEventListener("click", reviewSubmission));
+}
+
+async function reviewSubmission(event) {
+  const item = event.target.closest(".approval-item");
+  const action = event.target.dataset.action;
+  const reviewer = $("#reviewer-name").value.trim();
+  if (!reviewer) return toast("请填写审核人");
+  event.target.disabled = true;
+  try {
+    const result = await request(`/cost-data/submissions/${item.dataset.submissionId}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ reviewed_by: reviewer, comment: action === "approve" ? "数据核对无误，同意采用" : "数据异常，退回现场复核" })
+    });
+    if (action === "approve") {
+      await loadDashboard();
+      toast(`已批准生效，成本变化 ${money(result.cost_impact.delta)}`);
+    } else {
+      await renderApprovals();
+      toast("数据已驳回，不参与成本核算");
+    }
+  } catch (error) { toast(error.message); event.target.disabled = false; }
+}
+
+function downloadCsvTemplate() {
+  const content = [
+    "record_id,part_id,process_type,qty,good_qty,cycle_time_actual,scrap_qty,source",
+    `IMPORT-${Date.now()},PART-BOTTLE,injection,1000,950,39.2,50,pilot`
+  ].join("\n");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" }));
+  link.download = "megee-production-cost-template.csv";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function importCsv(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const lines = (await file.text()).replace(/^\uFEFF/, "").trim().split(/\r?\n/);
+    const headers = parseCsvLine(lines.shift());
+    const required = ["record_id", "part_id", "process_type", "qty", "good_qty", "cycle_time_actual", "scrap_qty", "source"];
+    if (!required.every((name) => headers.includes(name))) throw new Error("CSV 表头不符合模板");
+    const rows = lines.filter(Boolean).map((line) => {
+      const values = parseCsvLine(line);
+      const row = Object.fromEntries(headers.map((header, index) => [header, values[index]]));
+      return { ...row, qty: Number(row.qty), good_qty: Number(row.good_qty), scrap_qty: Number(row.scrap_qty) };
+    });
+    const result = await request("/cost-data/import", {
+      method: "POST",
+      body: JSON.stringify({ sku_id: SKU_ID, submitted_by: $("#collector-name").value, rows })
+    });
+    await renderApprovals();
+    toast(`已导入 ${result.count} 条数据，全部等待审批`);
+  } catch (error) { toast(error.message); }
+  event.target.value = "";
+}
+
+function parseCsvLine(line) {
+  const values = []; let current = ""; let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"' && line[index + 1] === '"') { current += '"'; index += 1; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === "," && !quoted) { values.push(current.trim()); current = ""; }
+    else current += char;
+  }
+  values.push(current.trim());
+  return values;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 }
 
 function renderStage() {
@@ -267,6 +400,10 @@ $("#seed-button").addEventListener("click", seedDemo);
 $("#stage-select").addEventListener("change", (event) => { state.currentStage = event.target.value; renderStage(); renderEvolution(); });
 $("#quote-form").addEventListener("submit", generateQuote);
 $("#snapshot-button").addEventListener("click", createSnapshot);
+$("#field-data-form").addEventListener("submit", submitFieldData);
+$("#field-operation").addEventListener("change", (event) => { $("#field-cycle").value = Number(event.target.selectedOptions[0].dataset.cycle); });
+$("#template-button").addEventListener("click", downloadCsvTemplate);
+$("#csv-input").addEventListener("change", importCsv);
 document.querySelectorAll("#quote-form input").forEach((input) => input.addEventListener("input", calculatePreviewPrice));
 document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => {
   document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active")); item.classList.add("active");

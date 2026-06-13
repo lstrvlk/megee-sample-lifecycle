@@ -112,6 +112,24 @@ class ProductionInput(APIModel):
         return self
 
 
+class ProductionSubmissionCreate(APIModel):
+    sku_id: str
+    submitted_by: str = Field(min_length=1, max_length=100)
+    source_mode: str = Field(default="onsite", pattern="^(onsite|import)$")
+    production: ProductionInput
+
+
+class ProductionSubmissionBatch(APIModel):
+    sku_id: str
+    submitted_by: str = Field(min_length=1, max_length=100)
+    rows: List[ProductionInput] = Field(min_length=1, max_length=500)
+
+
+class SubmissionReviewRequest(APIModel):
+    reviewed_by: str = Field(min_length=1, max_length=100)
+    comment: str = Field(default="", max_length=500)
+
+
 class MoldUpdateRequest(APIModel):
     mold_id: str
     actual_output: Optional[int] = Field(default=None, ge=0)

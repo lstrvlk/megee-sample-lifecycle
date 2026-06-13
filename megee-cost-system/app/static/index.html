@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="MEGEE 制造成本智能系统" />
     <title>MEGEE Cost Intelligence</title>
-    <link rel="stylesheet" href="/assets/styles.css" />
+    <link rel="stylesheet" href="/assets/styles.css?v=1.1" />
   </head>
   <body>
     <div class="shell">
@@ -17,8 +17,9 @@
         <nav class="nav" aria-label="主导航">
           <a class="nav-item active" href="#overview"><span>01</span>成本驾驶舱</a>
           <a class="nav-item" href="#structure"><span>02</span>产品结构</a>
-          <a class="nav-item" href="#quotation"><span>03</span>智能报价</a>
-          <a class="nav-item" href="#versions"><span>04</span>版本追溯</a>
+          <a class="nav-item" href="#collection"><span>03</span>现场采集</a>
+          <a class="nav-item" href="#quotation"><span>04</span>智能报价</a>
+          <a class="nav-item" href="#versions"><span>05</span>版本追溯</a>
         </nav>
         <div class="sidebar-note">
           <span class="eyebrow">SYSTEM</span>
@@ -79,6 +80,45 @@
             <div class="metric-icon purple">模</div>
             <div><span>模具阶段</span><strong id="metric-mold">--</strong><small id="metric-output">等待更新</small></div>
           </article>
+        </section>
+
+        <section id="collection" class="panel collection-panel">
+          <div class="panel-head">
+            <div><span class="eyebrow">FIELD DATA · APPROVAL</span><h3>现场成本数据采集</h3></div>
+            <div class="approval-summary"><span id="pending-count">0</span><small>条待审批</small></div>
+          </div>
+          <div class="workflow-strip" aria-label="数据审批流程">
+            <div class="workflow-step active"><b>1</b><span>现场录入<small>手机或电脑填报</small></span></div>
+            <i>→</i>
+            <div class="workflow-step"><b>2</b><span>待审数据<small>不参与正式核算</small></span></div>
+            <i>→</i>
+            <div class="workflow-step"><b>3</b><span>批准生效<small>重算并生成版本</small></span></div>
+          </div>
+          <div class="collection-grid">
+            <div class="entry-card">
+              <div class="section-title"><h4>录入生产实绩</h4><span class="badge badge-warm">现场采集</span></div>
+              <form id="field-data-form">
+                <div class="form-grid field-grid">
+                  <label>采集人<input id="collector-name" required value="现场班组长" /></label>
+                  <label>成本阶段<select id="field-stage"><option value="trial">试模</option><option value="pilot" selected>小批</option><option value="mass">量产</option></select></label>
+                  <label>零件 / 工序<select id="field-operation" required disabled><option>等待产品数据</option></select></label>
+                  <label>投入数量<input id="field-qty" type="number" min="1" required value="1000" /></label>
+                  <label>良品数量<input id="field-good-qty" type="number" min="1" required value="950" /></label>
+                  <label>实际周期（秒）<input id="field-cycle" type="number" min="0.01" step="0.01" required value="39" /></label>
+                </div>
+                <div class="entry-actions">
+                  <button id="field-submit" class="button button-dark" type="submit" disabled>提交审批</button>
+                  <label class="button button-soft file-button">导入 CSV<input id="csv-input" type="file" accept=".csv,text/csv" /></label>
+                  <button id="template-button" class="text-button" type="button">下载 CSV 模板</button>
+                </div>
+              </form>
+              <p class="governance-note">提交后只进入待审池。未经批准的数据不会改变成本、报价或版本。</p>
+            </div>
+            <div class="approval-card">
+              <div class="section-title"><h4>审批工作台</h4><label class="reviewer-field">审核人<input id="reviewer-name" value="成本主管" /></label></div>
+              <div id="approval-list" class="approval-list empty-state">暂无待审批数据</div>
+            </div>
+          </div>
         </section>
 
         <div class="grid-main">
@@ -153,6 +193,6 @@
       </main>
     </div>
     <div id="toast" class="toast" role="status"></div>
-    <script src="/assets/app.js"></script>
+    <script src="/assets/app.js?v=1.1"></script>
   </body>
 </html>

@@ -10,6 +10,9 @@
 - 自制件、标准件、外协件三类成本
 - 独立 Routing 工艺和设备/人工费率
 - Trial / Pilot / Mass 生产实绩修正
+- 现场生产数据录入与 CSV 批量导入
+- 待审批数据隔离、批准生效、驳回留痕
+- 数据批准后自动重算成本并生成成本版本
 - 模具剩余价值和剩余产量摊销
 - 成本版本父子树、快照和字段级 Diff
 - 新品、新客户、小批量、外协风险加成
@@ -63,6 +66,11 @@ postgresql+psycopg://user:password@db:5432/megee_cost
 | `POST` | `/sku/calculate` | 展开 SKU 并返回组件/零件成本明细 |
 | `POST` | `/cost/compute` | 计算 Standard/Trial/Pilot/Mass/Adjusted 成本 |
 | `POST` | `/production/input` | 输入人工生产记录 |
+| `POST` | `/cost-data/submissions` | 提交单条现场生产数据，进入待审批池 |
+| `POST` | `/cost-data/import` | 批量导入生产数据，全部进入待审批池 |
+| `GET` | `/cost-data/submissions` | 查询待审、已批准或已驳回数据 |
+| `POST` | `/cost-data/submissions/{id}/approve` | 批准数据、写入实绩、重算并生成版本 |
+| `POST` | `/cost-data/submissions/{id}/reject` | 驳回数据并保留审核记录 |
 | `POST` | `/mold/update` | 更新模具累计产量和生命周期 |
 | `POST` | `/quotation/generate` | 生成并保存报价 |
 | `POST` | `/cost/version/create` | 创建成本版本及不可变快照 |
@@ -102,6 +110,17 @@ pytest
 ```
 
 测试覆盖主数据导入、标准成本、试模成本演化、生产数据校验、模具更新、成本版本树、Diff 和报价完整流程。
+
+## 现场数据治理
+
+驾驶舱的“现场成本数据采集”支持直接填报和 CSV 导入。新数据首先保存为 `pending`，此时不会参与任何成本或报价计算。审核人批准后，系统在同一事务中：
+
+1. 写入正式生产实绩。
+2. 使用批准后的数据重新计算对应 Trial、Pilot 或 Mass 成本。
+3. 创建带父版本关系的成本快照。
+4. 保存采集人、审核人、意见、生效记录和版本编号。
+
+驳回数据会永久保留为审计记录，但不会进入成本引擎。
 
 ## GitHub 发布
 

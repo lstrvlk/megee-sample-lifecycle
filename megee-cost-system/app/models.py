@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -143,6 +143,28 @@ class ProductionRecord(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     part: Mapped["Part"] = relationship(back_populates="production_records")
+
+
+class CostDataSubmission(Base):
+    __tablename__ = "cost_data_submissions"
+
+    submission_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    sku_id: Mapped[str] = mapped_column(ForeignKey("skus.sku_id"), index=True)
+    data_type: Mapped[str] = mapped_column(String(32), default="production")
+    source_mode: Mapped[str] = mapped_column(String(32), default="onsite")
+    submitted_by: Mapped[str] = mapped_column(String(100))
+    payload: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_comment: Mapped[str] = mapped_column(Text, default="")
+    applied_record_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("production_records.record_id"), nullable=True
+    )
+    applied_version_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("cost_versions.version_id"), nullable=True
+    )
 
 
 class CostVersion(Base):

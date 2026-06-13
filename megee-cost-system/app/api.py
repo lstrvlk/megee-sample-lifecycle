@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models import (
     SKU,
     Assembly,
+    CostDataSubmission,
     CostSnapshot,
     CostVersion,
     Mold,
@@ -31,7 +32,10 @@ from app.schemas import (
     CostVersionDiffRequest,
     MoldUpdateRequest,
     ProductionInput,
+    ProductionSubmissionBatch,
+    ProductionSubmissionCreate,
     QuotationGenerateRequest,
+    SubmissionReviewRequest,
 )
 
 router = APIRouter()
@@ -68,6 +72,28 @@ def list_skus(db: Session = Depends(get_db)) -> dict:
                 "assembly_count": len(sku.assemblies),
             }
             for sku in skus
+        ]
+    }
+
+
+@router.get("/catalog/skus/{sku_id}/operations")
+def list_sku_operations(sku_id: str, db: Session = Depends(get_db)) -> dict:
+    rows = db.execute(
+        select(Part.part_id, Part.name, Routing.process_type, Routing.cycle_time)
+        .join(Assembly, Part.assembly_id == Assembly.assembly_id)
+        .join(Routing, Routing.part_id == Part.part_id)
+        .where(Assembly.sku_id == sku_id)
+        .order_by(Part.part_id, Routing.sequence)
+    ).all()
+    return {
+        "items": [
+            {
+                "part_id": part_id,
+                "part_name": part_name,
+                "process_type": process_type,
+                "standard_cycle_time": cycle_time,
+            }
+            for part_id, part_name, process_type, cycle_time in rows
         ]
     }
 
@@ -173,6 +199,119 @@ def input_production(payload: ProductionInput, db: Session = Depends(get_db)) ->
         "yield_rate": money(Decimal(record.good_qty) / Decimal(record.qty)),
         "recorded_at": record.recorded_at,
     }
+
+
+@router.post("/cost-data/submissions", status_code=status.HTTP_201_CREATED)
+def create_cost_data_submission(
+    payload: ProductionSubmissionCreate, db: Session = Depends(get_db)
+) -> dict:
+    _validate_production_for_sku(db, payload.sku_id, payload.production)
+    submission = _new_production_submission(
+        payload.sku_id,
+        payload.submitted_by,
+        payload.source_mode,
+        payload.production,
+    )
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+    return _submission_response(submission)
+
+
+@router.post("/cost-data/import", status_code=status.HTTP_201_CREATED)
+def import_cost_data(payload: ProductionSubmissionBatch, db: Session = Depends(get_db)) -> dict:
+    record_ids = [row.record_id for row in payload.rows]
+    if len(record_ids) != len(set(record_ids)):
+        raise HTTPException(status_code=422, detail="Imported rows contain duplicate record_id values")
+    for row in payload.rows:
+        _validate_production_for_sku(db, payload.sku_id, row)
+    submissions = [
+        _new_production_submission(payload.sku_id, payload.submitted_by, "import", row)
+        for row in payload.rows
+    ]
+    db.add_all(submissions)
+    db.commit()
+    return {
+        "status": "pending_approval",
+        "count": len(submissions),
+        "submission_ids": [item.submission_id for item in submissions],
+    }
+
+
+@router.get("/cost-data/submissions")
+def list_cost_data_submissions(
+    sku_id: str, submission_status: str = "pending", db: Session = Depends(get_db)
+) -> dict:
+    statement = select(CostDataSubmission).where(CostDataSubmission.sku_id == sku_id)
+    if submission_status != "all":
+        statement = statement.where(CostDataSubmission.status == submission_status)
+    items = db.scalars(statement.order_by(CostDataSubmission.submitted_at.desc()).limit(100)).all()
+    return {"items": [_submission_response(item) for item in items]}
+
+
+@router.post("/cost-data/submissions/{submission_id}/approve")
+def approve_cost_data_submission(
+    submission_id: str, payload: SubmissionReviewRequest, db: Session = Depends(get_db)
+) -> dict:
+    submission = _pending_submission(db, submission_id)
+    production = ProductionInput.model_validate(submission.payload)
+    _validate_production_for_sku(db, submission.sku_id, production, check_pending=False)
+    if db.get(ProductionRecord, production.record_id) is not None:
+        raise HTTPException(status_code=409, detail=f"Production record {production.record_id} already exists")
+
+    before = CostEngine(db).compute_sku(submission.sku_id, production.source)
+    record = ProductionRecord(**production.model_dump())
+    db.add(record)
+    db.flush()
+    after = CostEngine(db).compute_sku(submission.sku_id, production.source)
+
+    parent = db.scalar(
+        select(CostVersion)
+        .where(CostVersion.sku_id == submission.sku_id)
+        .order_by(CostVersion.created_at.desc())
+        .limit(1)
+    )
+    version_id = f"CV-APP-{uuid4().hex[:10].upper()}"
+    version = CostVersion(
+        version_id=version_id,
+        sku_id=submission.sku_id,
+        parent_version_id=parent.version_id if parent else None,
+        version_type=production.source,
+        reason=f"Approved field data {submission.submission_id}",
+    )
+    version.snapshot = CostSnapshot(**snapshot_fields(after))
+    db.add(version)
+    db.flush()
+
+    submission.status = "approved"
+    submission.reviewed_by = payload.reviewed_by
+    submission.reviewed_at = datetime.now(timezone.utc)
+    submission.review_comment = payload.comment
+    submission.applied_record_id = production.record_id
+    submission.applied_version_id = version_id
+    db.commit()
+    return {
+        "submission": _submission_response(submission),
+        "cost_impact": {
+            "stage": production.source,
+            "before": before["total_cost"],
+            "after": after["total_cost"],
+            "delta": money(Decimal(after["total_cost"]) - Decimal(before["total_cost"])),
+        },
+    }
+
+
+@router.post("/cost-data/submissions/{submission_id}/reject")
+def reject_cost_data_submission(
+    submission_id: str, payload: SubmissionReviewRequest, db: Session = Depends(get_db)
+) -> dict:
+    submission = _pending_submission(db, submission_id)
+    submission.status = "rejected"
+    submission.reviewed_by = payload.reviewed_by
+    submission.reviewed_at = datetime.now(timezone.utc)
+    submission.review_comment = payload.comment
+    db.commit()
+    return _submission_response(submission)
 
 
 @router.post("/mold/update")
@@ -341,3 +480,84 @@ def _outsourced_risk_rate(ratio: Decimal) -> Decimal:
     if ratio > 0:
         return Decimal("0.03")
     return Decimal("0")
+
+
+def _validate_production_for_sku(
+    db: Session, sku_id: str, production: ProductionInput, check_pending: bool = True
+) -> None:
+    operation = db.execute(
+        select(Part.part_id)
+        .join(Assembly, Part.assembly_id == Assembly.assembly_id)
+        .join(Routing, Routing.part_id == Part.part_id)
+        .where(
+            Assembly.sku_id == sku_id,
+            Part.part_id == production.part_id,
+            Routing.process_type == production.process_type,
+        )
+    ).first()
+    if operation is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Operation {production.part_id}/{production.process_type} does not belong to SKU {sku_id}",
+        )
+    if db.get(ProductionRecord, production.record_id) is not None:
+        raise HTTPException(status_code=409, detail=f"Production record {production.record_id} already exists")
+    if check_pending:
+        pending = db.scalars(
+            select(CostDataSubmission).where(
+                CostDataSubmission.sku_id == sku_id,
+                CostDataSubmission.status == "pending",
+            )
+        ).all()
+        if any(item.payload.get("record_id") == production.record_id for item in pending):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Production record {production.record_id} is already pending approval",
+            )
+
+
+def _new_production_submission(
+    sku_id: str,
+    submitted_by: str,
+    source_mode: str,
+    production: ProductionInput,
+) -> CostDataSubmission:
+    return CostDataSubmission(
+        submission_id=f"CDS-{uuid4().hex[:12].upper()}",
+        sku_id=sku_id,
+        data_type="production",
+        source_mode=source_mode,
+        submitted_by=submitted_by,
+        payload=production.model_dump(mode="json"),
+        status="pending",
+    )
+
+
+def _pending_submission(db: Session, submission_id: str) -> CostDataSubmission:
+    submission = db.get(CostDataSubmission, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail=f"Submission {submission_id} not found")
+    if submission.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Submission {submission_id} has already been {submission.status}",
+        )
+    return submission
+
+
+def _submission_response(submission: CostDataSubmission) -> dict:
+    return {
+        "submission_id": submission.submission_id,
+        "sku_id": submission.sku_id,
+        "data_type": submission.data_type,
+        "source_mode": submission.source_mode,
+        "submitted_by": submission.submitted_by,
+        "payload": submission.payload,
+        "status": submission.status,
+        "submitted_at": submission.submitted_at,
+        "reviewed_by": submission.reviewed_by,
+        "reviewed_at": submission.reviewed_at,
+        "review_comment": submission.review_comment,
+        "applied_record_id": submission.applied_record_id,
+        "applied_version_id": submission.applied_version_id,
+    }
