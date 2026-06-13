@@ -1,0 +1,1 @@
+"""MEGEE manufacturing cost service."""

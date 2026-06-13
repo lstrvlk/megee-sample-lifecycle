@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MEGEE 制造成本智能系统" />
+    <title>MEGEE Cost Intelligence</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="MEGEE 首页">
+          <span class="brand-mark">M</span>
+          <span><strong>MEGEE</strong><small>Cost Intelligence</small></span>
+        </a>
+        <nav class="nav" aria-label="主导航">
+          <a class="nav-item active" href="#overview"><span>01</span>成本驾驶舱</a>
+          <a class="nav-item" href="#structure"><span>02</span>产品结构</a>
+          <a class="nav-item" href="#quotation"><span>03</span>智能报价</a>
+          <a class="nav-item" href="#versions"><span>04</span>版本追溯</a>
+        </nav>
+        <div class="sidebar-note">
+          <span class="eyebrow">SYSTEM</span>
+          <strong>V1.0 MVP</strong>
+          <p>结构、工艺与生命周期共同驱动成本。</p>
+          <a href="/docs" target="_blank" rel="noreferrer">打开 API 文档 ↗</a>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <span class="eyebrow">ZHEJIANG MEGEE INDUSTRIAL</span>
+            <h1>制造成本驾驶舱</h1>
+          </div>
+          <div class="top-actions">
+            <span id="api-status" class="status"><i></i>连接中</span>
+            <button id="seed-button" class="button button-primary">载入演示产品</button>
+          </div>
+        </header>
+
+        <section id="overview" class="hero panel-dark">
+          <div class="hero-copy">
+            <span class="eyebrow light">COST EVOLUTION · LIVE</span>
+            <h2>让每一分钱的成本，<br /><em>都有出处。</em></h2>
+            <p>从试模到量产，将 BOM、工艺节拍、良率与模具生命周期收敛为可追溯的报价依据。</p>
+          </div>
+          <div class="hero-control">
+            <label for="stage-select">当前成本阶段</label>
+            <select id="stage-select" disabled>
+              <option value="standard">标准成本</option>
+              <option value="trial" selected>试模成本</option>
+              <option value="pilot">小批成本</option>
+              <option value="mass">量产成本</option>
+            </select>
+            <div class="hero-total">
+              <small>SKU 单位成本</small>
+              <strong id="hero-cost">¥ --</strong>
+              <span id="hero-delta">等待载入产品数据</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="关键指标">
+          <article class="metric">
+            <div class="metric-icon amber">成</div>
+            <div><span>单位制造成本</span><strong id="metric-cost">¥ --</strong><small id="metric-stage">尚无数据</small></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon green">报</div>
+            <div><span>建议报价</span><strong id="metric-price">¥ --</strong><small>目标毛利 22%</small></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon blue">良</div>
+            <div><span>综合良率</span><strong id="metric-yield">--%</strong><small>基于生产实绩</small></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon purple">模</div>
+            <div><span>模具阶段</span><strong id="metric-mold">--</strong><small id="metric-output">等待更新</small></div>
+          </article>
+        </section>
+
+        <div class="grid-main">
+          <section class="panel" id="structure">
+            <div class="panel-head">
+              <div><span class="eyebrow">COST ANATOMY</span><h3>成本构成</h3></div>
+              <span id="sku-badge" class="badge">未选择 SKU</span>
+            </div>
+            <div class="cost-layout">
+              <div id="cost-donut" class="donut" style="--material: 0deg; --process: 0deg; --mold: 0deg; --external: 0deg">
+                <div><small>单位成本</small><strong id="donut-total">¥ --</strong></div>
+              </div>
+              <div id="cost-legend" class="legend empty-state">载入演示产品后显示实时成本构成</div>
+            </div>
+            <div class="divider"></div>
+            <div class="section-title"><h4>Assembly 成本穿透</h4><span>从报价层下钻至零件</span></div>
+            <div id="assembly-list" class="assembly-list empty-state">暂无组件数据</div>
+          </section>
+
+          <section class="panel evolution-panel">
+            <div class="panel-head">
+              <div><span class="eyebrow">FROM TRIAL TO MASS</span><h3>成本演化</h3></div>
+              <span class="live-dot">LIVE MODEL</span>
+            </div>
+            <div id="evolution-chart" class="evolution-chart">
+              <div class="chart-empty">数据载入后，将展示阶段成本收敛曲线。</div>
+            </div>
+            <div class="insight">
+              <span class="insight-mark">↘</span>
+              <div><strong>成本收敛建议</strong><p id="insight-text">系统将根据节拍与良率识别主要改善机会。</p></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="grid-bottom">
+          <section id="quotation" class="panel quote-panel">
+            <div class="panel-head">
+              <div><span class="eyebrow">QUOTATION ENGINE</span><h3>智能报价台</h3></div>
+              <span class="badge badge-warm">风险自动计价</span>
+            </div>
+            <form id="quote-form">
+              <div class="form-grid">
+                <label>客户名称<input id="customer-name" value="未来美妆科技" /></label>
+                <label>报价数量<input id="quote-quantity" type="number" min="1" value="5000" /></label>
+                <label>目标毛利率<input id="target-margin" type="number" min="0" max="80" value="22" /><span class="suffix">%</span></label>
+              </div>
+              <div class="risk-row">
+                <label><input id="risk-product" type="checkbox" checked /><span>新品 +5%</span></label>
+                <label><input id="risk-customer" type="checkbox" /><span>新客户 +5%</span></label>
+                <label><input id="risk-batch" type="checkbox" checked /><span>小批量 +10%</span></label>
+              </div>
+              <button class="button button-dark" type="submit" disabled id="quote-button">生成正式报价</button>
+            </form>
+            <div id="quote-result" class="quote-result">
+              <span>建议含税前单价</span><strong>¥ --</strong><small>载入产品后即可生成</small>
+            </div>
+          </section>
+
+          <section id="versions" class="panel version-panel">
+            <div class="panel-head">
+              <div><span class="eyebrow">VERSION TREE</span><h3>成本版本追溯</h3></div>
+              <button id="snapshot-button" class="text-button" disabled>创建快照 +</button>
+            </div>
+            <div id="version-list" class="version-list empty-state">暂无成本快照</div>
+          </section>
+        </div>
+
+        <footer>
+          <span>MEGEE Manufacturing Cost Intelligence System</span>
+          <span>数据口径：CNY / 单件 / 未税</span>
+        </footer>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status"></div>
+    <script src="/assets/app.js"></script>
+  </body>
+</html>
