@@ -65,8 +65,9 @@ class Breakdown:
 
 
 class CostEngine:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, hypothetical_record: object = None):
         self.db = db
+        self.hypothetical_record = hypothetical_record
 
     def load_sku(self, sku_id: str) -> SKU:
         statement = (
@@ -210,16 +211,24 @@ class CostEngine:
         yield_factor = self._routing_yield_factor(part, route.process_type, route.yield_rate, stage)
         return raw_cost * process_factor * yield_factor
 
-    @staticmethod
-    def _records(part: Part, process_type: str, stage: str) -> Iterable[object]:
+    def _records(self, part: Part, process_type: str, stage: str) -> Iterable[object]:
         if stage == "standard":
             return []
-        return [
+        records = [
             record
             for record in part.production_records
             if record.process_type == process_type
             and (record.source == stage or stage == "adjusted")
         ]
+        candidate = self.hypothetical_record
+        if (
+            candidate is not None
+            and candidate.part_id == part.part_id
+            and candidate.process_type == process_type
+            and (candidate.source == stage or stage == "adjusted")
+        ):
+            records.append(candidate)
+        return records
 
     def _process_factor(self, part: Part, process_type: str, standard_cycle: Decimal, stage: str) -> Decimal:
         records = list(self._records(part, process_type, stage))

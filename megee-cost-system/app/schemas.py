@@ -119,6 +119,11 @@ class ProductionSubmissionCreate(APIModel):
     production: ProductionInput
 
 
+class ProductionPreviewRequest(APIModel):
+    sku_id: str
+    production: ProductionInput
+
+
 class ProductionSubmissionBatch(APIModel):
     sku_id: str
     submitted_by: str = Field(min_length=1, max_length=100)

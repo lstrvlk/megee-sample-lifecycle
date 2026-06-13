@@ -308,3 +308,37 @@ def test_csv_batch_stays_pending_and_can_be_rejected(client):
     assert client.get(
         "/cost-data/submissions", params={"sku_id": "SKU-001", "submission_status": "pending"}
     ).json()["items"] == []
+
+
+def test_cost_preview_explains_formula_without_persisting(client):
+    assert client.post("/catalog/import", json=CATALOG).status_code == 200
+    payload = {
+        "sku_id": "SKU-001",
+        "production": {
+            "record_id": "PREVIEW-ONLY",
+            "part_id": "PART-BOTTLE",
+            "process_type": "injection",
+            "qty": 100,
+            "good_qty": 80,
+            "cycle_time_actual": "45",
+            "scrap_qty": 20,
+            "source": "trial",
+        },
+    }
+    preview = client.post("/cost-data/preview", json=payload)
+    assert preview.status_code == 200, preview.text
+    body = preview.json()
+    assert body["operation"]["machine"] == "IM-01"
+    assert body["formula"]["hourly_rate"] == "120.000000"
+    assert body["formula"]["process_factor"] == "1.250000"
+    assert body["formula"]["yield_cost_factor"] == "1.250000"
+    assert Decimal(body["sku_impact"]["projected_total_cost"]) > Decimal(
+        body["sku_impact"]["current_total_cost"]
+    )
+
+    pending = client.get(
+        "/cost-data/submissions", params={"sku_id": "SKU-001", "submission_status": "pending"}
+    )
+    assert pending.json()["items"] == []
+    accepted = client.post("/production/input", json=payload["production"])
+    assert accepted.status_code == 201

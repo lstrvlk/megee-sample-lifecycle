@@ -132,7 +132,65 @@ async function loadFieldOperations() {
   select.innerHTML = data.items.map((item) => `<option value="${item.part_id}|${item.process_type}" data-cycle="${item.standard_cycle_time}">${item.part_name} · ${item.process_type}（标准 ${Number(item.standard_cycle_time)}s）</option>`).join("");
   select.disabled = !data.items.length;
   $("#field-submit").disabled = !data.items.length;
-  if (data.items.length) $("#field-cycle").value = Number(data.items[0].standard_cycle_time);
+  if (data.items.length) {
+    $("#field-cycle").value = Number(data.items[0].standard_cycle_time);
+    await previewFieldCost();
+  }
+}
+
+async function previewFieldCost() {
+  if ($("#field-operation").disabled || !$("#field-operation").value.includes("|")) return;
+  const [partId, processType] = $("#field-operation").value.split("|");
+  const qty = Number($("#field-qty").value);
+  const goodQty = Number($("#field-good-qty").value);
+  const cycle = Number($("#field-cycle").value);
+  const panel = $("#calculation-preview");
+  if (!qty || !goodQty || !cycle || goodQty > qty) {
+    panel.innerHTML = '<div class="preview-placeholder">请输入有效数据：良品数量不能超过投入数量。</div>';
+    return;
+  }
+  panel.classList.add("loading");
+  try {
+    const data = await request("/cost-data/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        sku_id: SKU_ID,
+        production: {
+          record_id: `PREVIEW-${Date.now()}`, part_id: partId, process_type: processType,
+          qty, good_qty: goodQty, scrap_qty: qty - goodQty,
+          cycle_time_actual: String(cycle), source: $("#field-stage").value
+        }
+      })
+    });
+    renderCalculationPreview(data);
+  } catch (error) {
+    panel.innerHTML = `<div class="preview-placeholder">${escapeHtml(error.message)}</div>`;
+  } finally { panel.classList.remove("loading"); }
+}
+
+function renderCalculationPreview(data) {
+  const op = data.operation; const agg = data.aggregation; const formula = data.formula; const impact = data.sku_impact;
+  const delta = Number(impact.delta);
+  $("#calculation-preview").innerHTML = `
+    <div class="preview-head"><strong>第二步：查看系统怎么算</strong><span>${escapeHtml(op.part_name)} / ${escapeHtml(op.process_type)}</span></div>
+    <div class="parameter-strip">
+      <div><small>材料基准</small><b>${money(op.material_cost)}</b></div>
+      <div><small>设备费率</small><b>¥${Number(op.machine_rate_per_hour).toFixed(2)}/h</b></div>
+      <div><small>人工</small><b>${op.labor_count}人 × ¥${Number(op.labor_rate_per_hour).toFixed(2)}/h</b></div>
+      <div><small>模具摊销</small><b>${money(op.mold_unit_cost)}/件</b></div>
+    </div>
+    <div class="formula-flow">
+      <div class="formula-title"><strong>所选工序成本推导</strong><span>历史 ${agg.existing_record_count} 条 + 本次 1 条</span></div>
+      <div class="formula-line"><b>01</b><div class="formula-copy"><strong>综合小时费率</strong><small>设备 ${Number(op.machine_rate_per_hour).toFixed(2)} + 人工 ${op.labor_count} × ${Number(op.labor_rate_per_hour).toFixed(2)}</small></div><span class="formula-result">¥${Number(formula.hourly_rate).toFixed(3)}/h</span></div>
+      <div class="formula-line"><b>02</b><div class="formula-copy"><strong>标准节拍工艺成本</strong><small>${Number(formula.hourly_rate).toFixed(3)} × ${Number(op.standard_cycle_time).toFixed(2)}秒 ÷ 3600</small></div><span class="formula-result">${money(formula.raw_process_cost)}</span></div>
+      <div class="formula-line"><b>03</b><div class="formula-copy"><strong>实际节拍修正</strong><small>加权周期 ${Number(agg.projected_cycle_time).toFixed(2)}秒 ÷ 标准 ${Number(op.standard_cycle_time).toFixed(2)}秒</small></div><span class="formula-result">× ${Number(formula.process_factor).toFixed(3)}</span></div>
+      <div class="formula-line"><b>04</b><div class="formula-copy"><strong>良率成本修正</strong><small>累计投入 ${agg.projected_qty} ÷ 良品 ${agg.projected_good_qty}，良率 ${percentage(agg.projected_yield)}</small></div><span class="formula-result">× ${Number(formula.yield_cost_factor).toFixed(3)}</span></div>
+      <div class="formula-line"><b>05</b><div class="formula-copy"><strong>该工序预计单位成本</strong><small>标准工艺成本 × 节拍因子 × 良率因子</small></div><span class="formula-result">${money(formula.projected_process_cost)}</span></div>
+    </div>
+    <div class="sku-impact">
+      <div><small>当前 ${impact.stage.toUpperCase()} SKU 成本</small><strong>${money(impact.current_total_cost)}</strong></div><i>→</i><div class="projected"><small>若批准采用后的成本</small><strong>${money(impact.projected_total_cost)}</strong></div>
+      <span class="impact-note">预计变化 ${delta >= 0 ? "+" : ""}${money(delta)}；这里只试算，尚未写入正式成本。</span>
+    </div>`;
 }
 
 async function submitFieldData(event) {
@@ -401,7 +459,12 @@ $("#stage-select").addEventListener("change", (event) => { state.currentStage = 
 $("#quote-form").addEventListener("submit", generateQuote);
 $("#snapshot-button").addEventListener("click", createSnapshot);
 $("#field-data-form").addEventListener("submit", submitFieldData);
-$("#field-operation").addEventListener("change", (event) => { $("#field-cycle").value = Number(event.target.selectedOptions[0].dataset.cycle); });
+$("#field-operation").addEventListener("change", (event) => { $("#field-cycle").value = Number(event.target.selectedOptions[0].dataset.cycle); previewFieldCost(); });
+$("#field-stage").addEventListener("change", previewFieldCost);
+document.querySelectorAll("#field-qty, #field-good-qty, #field-cycle").forEach((input) => input.addEventListener("input", () => {
+  window.clearTimeout(previewFieldCost.timer);
+  previewFieldCost.timer = window.setTimeout(previewFieldCost, 250);
+}));
 $("#template-button").addEventListener("click", downloadCsvTemplate);
 $("#csv-input").addEventListener("change", importCsv);
 document.querySelectorAll("#quote-form input").forEach((input) => input.addEventListener("input", calculatePreviewPrice));

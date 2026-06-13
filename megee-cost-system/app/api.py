@@ -32,6 +32,7 @@ from app.schemas import (
     CostVersionDiffRequest,
     MoldUpdateRequest,
     ProductionInput,
+    ProductionPreviewRequest,
     ProductionSubmissionBatch,
     ProductionSubmissionCreate,
     QuotationGenerateRequest,
@@ -247,6 +248,94 @@ def list_cost_data_submissions(
         statement = statement.where(CostDataSubmission.status == submission_status)
     items = db.scalars(statement.order_by(CostDataSubmission.submitted_at.desc()).limit(100)).all()
     return {"items": [_submission_response(item) for item in items]}
+
+
+@router.post("/cost-data/preview")
+def preview_cost_data(payload: ProductionPreviewRequest, db: Session = Depends(get_db)) -> dict:
+    _validate_production_for_sku(
+        db, payload.sku_id, payload.production, check_pending=False, check_record=False
+    )
+    part = db.get(Part, payload.production.part_id)
+    route = db.scalar(
+        select(Routing).where(
+            Routing.part_id == payload.production.part_id,
+            Routing.process_type == payload.production.process_type,
+        )
+    )
+    current_cost = CostEngine(db).compute_sku(payload.sku_id, payload.production.source)
+    projected_cost = CostEngine(db, payload.production).compute_sku(
+        payload.sku_id, payload.production.source
+    )
+
+    existing = db.scalars(
+        select(ProductionRecord).where(
+            ProductionRecord.part_id == payload.production.part_id,
+            ProductionRecord.process_type == payload.production.process_type,
+            ProductionRecord.source == payload.production.source,
+        )
+    ).all()
+    existing_qty = sum((item.qty for item in existing), 0)
+    existing_good = sum((item.good_qty for item in existing), 0)
+    existing_cycle_total = sum(
+        (Decimal(item.cycle_time_actual) * item.qty for item in existing), Decimal("0")
+    )
+    projected_qty = existing_qty + payload.production.qty
+    projected_good = existing_good + payload.production.good_qty
+    projected_cycle = (
+        existing_cycle_total
+        + Decimal(payload.production.cycle_time_actual) * payload.production.qty
+    ) / projected_qty
+    projected_yield = Decimal(projected_good) / Decimal(projected_qty)
+    hourly_rate = Decimal(route.machine_rate_per_hour) + (
+        Decimal(route.labor_rate_per_hour) * route.labor_count
+    )
+    raw_process_cost = hourly_rate * Decimal(route.cycle_time) / Decimal("3600")
+    process_factor = projected_cycle / Decimal(route.cycle_time)
+    yield_cost_factor = Decimal(projected_qty) / Decimal(projected_good)
+    projected_process_cost = raw_process_cost * process_factor * yield_cost_factor
+    mold_unit_cost = sum(
+        (CostEngine._mold_unit_cost(mold) for mold in part.molds), Decimal("0")
+    )
+
+    return {
+        "operation": {
+            "part_id": part.part_id,
+            "part_name": part.name,
+            "process_type": route.process_type,
+            "material_cost": money(Decimal(part.material_cost)),
+            "standard_cycle_time": route.cycle_time,
+            "machine": route.machine,
+            "machine_rate_per_hour": route.machine_rate_per_hour,
+            "labor_count": route.labor_count,
+            "labor_rate_per_hour": route.labor_rate_per_hour,
+            "standard_yield": route.yield_rate,
+            "mold_unit_cost": money(mold_unit_cost),
+        },
+        "aggregation": {
+            "existing_record_count": len(existing),
+            "existing_qty": existing_qty,
+            "candidate_qty": payload.production.qty,
+            "projected_qty": projected_qty,
+            "projected_good_qty": projected_good,
+            "projected_cycle_time": money(projected_cycle),
+            "projected_yield": money(projected_yield),
+        },
+        "formula": {
+            "hourly_rate": money(hourly_rate),
+            "raw_process_cost": money(raw_process_cost),
+            "process_factor": money(process_factor),
+            "yield_cost_factor": money(yield_cost_factor),
+            "projected_process_cost": money(projected_process_cost),
+        },
+        "sku_impact": {
+            "stage": payload.production.source,
+            "current_total_cost": current_cost["total_cost"],
+            "projected_total_cost": projected_cost["total_cost"],
+            "delta": money(
+                Decimal(projected_cost["total_cost"]) - Decimal(current_cost["total_cost"])
+            ),
+        },
+    }
 
 
 @router.post("/cost-data/submissions/{submission_id}/approve")
@@ -483,7 +572,11 @@ def _outsourced_risk_rate(ratio: Decimal) -> Decimal:
 
 
 def _validate_production_for_sku(
-    db: Session, sku_id: str, production: ProductionInput, check_pending: bool = True
+    db: Session,
+    sku_id: str,
+    production: ProductionInput,
+    check_pending: bool = True,
+    check_record: bool = True,
 ) -> None:
     operation = db.execute(
         select(Part.part_id)
@@ -500,7 +593,7 @@ def _validate_production_for_sku(
             status_code=422,
             detail=f"Operation {production.part_id}/{production.process_type} does not belong to SKU {sku_id}",
         )
-    if db.get(ProductionRecord, production.record_id) is not None:
+    if check_record and db.get(ProductionRecord, production.record_id) is not None:
         raise HTTPException(status_code=409, detail=f"Production record {production.record_id} already exists")
     if check_pending:
         pending = db.scalars(

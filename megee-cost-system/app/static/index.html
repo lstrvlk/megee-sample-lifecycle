@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="MEGEE 制造成本智能系统" />
     <title>MEGEE Cost Intelligence</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=1.1" />
+    <link rel="stylesheet" href="/assets/styles.css?v=1.2" />
   </head>
   <body>
     <div class="shell">
@@ -96,7 +96,7 @@
           </div>
           <div class="collection-grid">
             <div class="entry-card">
-              <div class="section-title"><h4>录入生产实绩</h4><span class="badge badge-warm">现场采集</span></div>
+              <div class="section-title"><h4>第一步：输入现场数据</h4><span class="badge badge-warm">修改即可试算</span></div>
               <form id="field-data-form">
                 <div class="form-grid field-grid">
                   <label>采集人<input id="collector-name" required value="现场班组长" /></label>
@@ -113,9 +113,13 @@
                 </div>
               </form>
               <p class="governance-note">提交后只进入待审池。未经批准的数据不会改变成本、报价或版本。</p>
+              <div id="calculation-preview" class="calculation-preview">
+                <div class="preview-placeholder">选择工序并修改数量或周期，系统会在这里逐步展示核算过程。</div>
+              </div>
             </div>
             <div class="approval-card">
-              <div class="section-title"><h4>审批工作台</h4><label class="reviewer-field">审核人<input id="reviewer-name" value="成本主管" /></label></div>
+              <div class="section-title"><h4>第三步：审批后采用</h4><label class="reviewer-field">审核人<input id="reviewer-name" value="成本主管" /></label></div>
+              <div class="approval-rule"><b>待审 ≠ 正式成本</b><span>批准时才写入生产实绩，并自动创建成本版本。</span></div>
               <div id="approval-list" class="approval-list empty-state">暂无待审批数据</div>
             </div>
           </div>
@@ -193,6 +197,6 @@
       </main>
     </div>
     <div id="toast" class="toast" role="status"></div>
-    <script src="/assets/app.js?v=1.1"></script>
+    <script src="/assets/app.js?v=1.2"></script>
   </body>
 </html>
