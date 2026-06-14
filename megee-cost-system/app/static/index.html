@@ -3,200 +3,97 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="MEGEE 制造成本智能系统" />
-    <title>MEGEE Cost Intelligence</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=1.2" />
+    <meta name="description" content="MEGEE 产品成本核算系统" />
+    <title>MEGEE 产品成本核算</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=2.0" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="/" aria-label="MEGEE 首页">
-          <span class="brand-mark">M</span>
-          <span><strong>MEGEE</strong><small>Cost Intelligence</small></span>
-        </a>
-        <nav class="nav" aria-label="主导航">
-          <a class="nav-item active" href="#overview"><span>01</span>成本驾驶舱</a>
-          <a class="nav-item" href="#structure"><span>02</span>产品结构</a>
-          <a class="nav-item" href="#collection"><span>03</span>现场采集</a>
-          <a class="nav-item" href="#quotation"><span>04</span>智能报价</a>
-          <a class="nav-item" href="#versions"><span>05</span>版本追溯</a>
-        </nav>
-        <div class="sidebar-note">
-          <span class="eyebrow">SYSTEM</span>
-          <strong>V1.0 MVP</strong>
-          <p>结构、工艺与生命周期共同驱动成本。</p>
-          <a href="/docs" target="_blank" rel="noreferrer">打开 API 文档 ↗</a>
-        </div>
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="MEGEE 产品成本核算首页">
+        <span class="brand-mark">M</span>
+        <span><strong>MEGEE</strong><small>产品成本核算系统</small></span>
+      </a>
+      <div class="header-title">
+        <span>浙江美集实业有限公司</span>
+        <h1>产品成本核算</h1>
+      </div>
+      <span id="api-status" class="status"><i></i>正在连接</span>
+    </header>
+
+    <div class="workspace">
+      <aside class="steps" aria-label="成本核算步骤">
+        <div class="steps-title"><span>核算流程</span><b id="progress-text">第 1 / 5 步</b></div>
+        <button class="step active" type="button"><b>1</b><span>BOM 成本<small>材料、标准件、外协</small></span></button>
+        <button class="step" type="button" disabled><b>2</b><span>工艺成本<small>设备、人工、节拍、良率</small></span></button>
+        <button class="step" type="button" disabled><b>3</b><span>模具成本<small>模具摊销与寿命</small></span></button>
+        <button class="step" type="button" disabled><b>4</b><span>制造费用<small>包装、装配与制造费率</small></span></button>
+        <button class="step" type="button" disabled><b>5</b><span>确认与报价<small>成本版本、规则报价、报告</small></span></button>
+        <div class="step-note"><strong>本阶段目标</strong><p>先把 Excel 中每款产品的 BOM 和真实采购价格迁入系统，并逐行核对。</p></div>
       </aside>
 
       <main class="main">
-        <header class="topbar">
-          <div>
-            <span class="eyebrow">ZHEJIANG MEGEE INDUSTRIAL</span>
-            <h1>制造成本驾驶舱</h1>
-          </div>
-          <div class="top-actions">
-            <span id="api-status" class="status"><i></i>连接中</span>
-            <button id="seed-button" class="button button-primary">载入演示产品</button>
-          </div>
-        </header>
-
-        <section id="overview" class="hero panel-dark">
-          <div class="hero-copy">
-            <span class="eyebrow light">COST EVOLUTION · LIVE</span>
-            <h2>让每一分钱的成本，<br /><em>都有出处。</em></h2>
-            <p>从试模到量产，将 BOM、工艺节拍、良率与模具生命周期收敛为可追溯的报价依据。</p>
-          </div>
-          <div class="hero-control">
-            <label for="stage-select">当前成本阶段</label>
-            <select id="stage-select" disabled>
-              <option value="standard">标准成本</option>
-              <option value="trial" selected>试模成本</option>
-              <option value="pilot">小批成本</option>
-              <option value="mass">量产成本</option>
-            </select>
-            <div class="hero-total">
-              <small>SKU 单位成本</small>
-              <strong id="hero-cost">¥ --</strong>
-              <span id="hero-delta">等待载入产品数据</span>
-            </div>
+        <section class="page-intro">
+          <div><span class="eyebrow">STEP 01 · BOM COST</span><h2>第一步：核对产品 BOM 成本</h2><p>每个数字都可以修改。蓝色输入框来自 Excel 或系统主数据，确认后才生成正式成本版本。</p></div>
+          <div class="toolbar">
+            <button id="new-product" class="button secondary" type="button">新建产品</button>
+            <label class="button secondary file-button">导入 Excel<input id="excel-input" type="file" accept=".xlsx" /></label>
+            <button id="template-button" class="button secondary" type="button">下载 Excel 模板</button>
+            <button id="report-button" class="button secondary" type="button" disabled>导出 BOM 报告</button>
           </div>
         </section>
 
-        <section class="metrics" aria-label="关键指标">
-          <article class="metric">
-            <div class="metric-icon amber">成</div>
-            <div><span>单位制造成本</span><strong id="metric-cost">¥ --</strong><small id="metric-stage">尚无数据</small></div>
-          </article>
-          <article class="metric">
-            <div class="metric-icon green">报</div>
-            <div><span>建议报价</span><strong id="metric-price">¥ --</strong><small>目标毛利 22%</small></div>
-          </article>
-          <article class="metric">
-            <div class="metric-icon blue">良</div>
-            <div><span>综合良率</span><strong id="metric-yield">--%</strong><small>基于生产实绩</small></div>
-          </article>
-          <article class="metric">
-            <div class="metric-icon purple">模</div>
-            <div><span>模具阶段</span><strong id="metric-mold">--</strong><small id="metric-output">等待更新</small></div>
-          </article>
+        <section class="product-bar">
+          <label>选择系统已有产品<select id="sku-select"><option value="">正在读取产品...</option></select></label>
+          <div class="version-chip"><span>当前主数据版本</span><b id="sku-version">--</b></div>
+          <div class="version-chip"><span>核算状态</span><b id="worksheet-status">未载入</b></div>
         </section>
 
-        <section id="collection" class="panel collection-panel">
-          <div class="panel-head">
-            <div><span class="eyebrow">FIELD DATA · APPROVAL</span><h3>现场成本数据采集</h3></div>
-            <div class="approval-summary"><span id="pending-count">0</span><small>条待审批</small></div>
-          </div>
-          <div class="workflow-strip" aria-label="数据审批流程">
-            <div class="workflow-step active"><b>1</b><span>现场录入<small>手机或电脑填报</small></span></div>
-            <i>→</i>
-            <div class="workflow-step"><b>2</b><span>待审数据<small>不参与正式核算</small></span></div>
-            <i>→</i>
-            <div class="workflow-step"><b>3</b><span>批准生效<small>重算并生成版本</small></span></div>
-          </div>
-          <div class="collection-grid">
-            <div class="entry-card">
-              <div class="section-title"><h4>第一步：输入现场数据</h4><span class="badge badge-warm">修改即可试算</span></div>
-              <form id="field-data-form">
-                <div class="form-grid field-grid">
-                  <label>采集人<input id="collector-name" required value="现场班组长" /></label>
-                  <label>成本阶段<select id="field-stage"><option value="trial">试模</option><option value="pilot" selected>小批</option><option value="mass">量产</option></select></label>
-                  <label>零件 / 工序<select id="field-operation" required disabled><option>等待产品数据</option></select></label>
-                  <label>投入数量<input id="field-qty" type="number" min="1" required value="1000" /></label>
-                  <label>良品数量<input id="field-good-qty" type="number" min="1" required value="950" /></label>
-                  <label>实际周期（秒）<input id="field-cycle" type="number" min="0.01" step="0.01" required value="39" /></label>
-                </div>
-                <div class="entry-actions">
-                  <button id="field-submit" class="button button-dark" type="submit" disabled>提交审批</button>
-                  <label class="button button-soft file-button">导入 CSV<input id="csv-input" type="file" accept=".csv,text/csv" /></label>
-                  <button id="template-button" class="text-button" type="button">下载 CSV 模板</button>
-                </div>
-              </form>
-              <p class="governance-note">提交后只进入待审池。未经批准的数据不会改变成本、报价或版本。</p>
-              <div id="calculation-preview" class="calculation-preview">
-                <div class="preview-placeholder">选择工序并修改数量或周期，系统会在这里逐步展示核算过程。</div>
-              </div>
+        <section class="costing-layout">
+          <div class="work-card">
+            <div class="section-head"><div><span>产品基本信息</span><h3>核算对象</h3></div><small>单位：CNY / 件 / 未税</small></div>
+            <div class="product-fields">
+              <label>产品编号<input id="sku-id" placeholder="例如 MEGEE-001" /></label>
+              <label>产品名称<input id="sku-name" placeholder="例如 30ml 真空瓶" /></label>
+              <label>包装成本<input id="packaging-cost" type="number" min="0" step="0.000001" value="0" /></label>
+              <label>制造费率<input id="overhead-rate" type="number" min="0" max="100" step="0.1" value="0" /><span class="suffix">%</span></label>
             </div>
-            <div class="approval-card">
-              <div class="section-title"><h4>第三步：审批后采用</h4><label class="reviewer-field">审核人<input id="reviewer-name" value="成本主管" /></label></div>
-              <div class="approval-rule"><b>待审 ≠ 正式成本</b><span>批准时才写入生产实绩，并自动创建成本版本。</span></div>
-              <div id="approval-list" class="approval-list empty-state">暂无待审批数据</div>
+
+            <div class="section-head table-title"><div><span>BOM 明细</span><h3>逐行核对真实参数</h3></div><button id="add-row" class="text-button" type="button">+ 添加零件</button></div>
+            <div class="table-help"><b>与现有平台一致：</b>本页先核对自制物料、外购物料/标准配件、外协/装饰工艺和包装。设备人工、装配节拍与模具在后续步骤单独核算。</div>
+            <div class="table-wrap">
+              <table class="bom-table">
+                <thead><tr><th>#</th><th>组件 / 零件</th><th>成本类型</th><th>单件用量</th><th>未税单价</th><th>供应商 / 来源</th><th>良率</th><th>成本贡献</th><th></th></tr></thead>
+                <tbody id="bom-body"><tr><td colspan="9" class="empty">请选择产品，或导入 Excel。</td></tr></tbody>
+              </table>
+            </div>
+            <div class="work-actions">
+              <span id="save-note">试算不会修改正式数据。</span>
+              <button id="apply-button" class="button primary" type="button" disabled>确认 BOM 成本并生成版本</button>
             </div>
           </div>
+
+          <aside class="summary-card">
+            <span class="eyebrow">LIVE CALCULATION</span>
+            <h3>BOM 成本汇总</h3>
+            <div class="summary-total"><small>当前 BOM 单位成本</small><strong id="bom-total">¥ --</strong><span>不含工艺、模具和制造费用</span></div>
+            <dl>
+              <div><dt><i class="dot manufactured"></i>自制材料</dt><dd id="manufactured-total">¥ --</dd></div>
+              <div><dt><i class="dot standard"></i>外购 / 标准配件</dt><dd id="standard-total">¥ --</dd></div>
+              <div><dt><i class="dot outsourced"></i>外协 / 装饰工艺</dt><dd id="outsourced-total">¥ --</dd></div>
+              <div><dt><i class="dot packaging"></i>包装</dt><dd id="packaging-total">¥ --</dd></div>
+            </dl>
+            <div class="formula-note"><strong>当前计算规则</strong><p>自制 / 标准件：用量 × 单价<br />外协件：用量 × 单价 ÷ 良率</p></div>
+            <div id="saved-result" class="saved-result hidden"></div>
+          </aside>
         </section>
 
-        <div class="grid-main">
-          <section class="panel" id="structure">
-            <div class="panel-head">
-              <div><span class="eyebrow">COST ANATOMY</span><h3>成本构成</h3></div>
-              <span id="sku-badge" class="badge">未选择 SKU</span>
-            </div>
-            <div class="cost-layout">
-              <div id="cost-donut" class="donut" style="--material: 0deg; --process: 0deg; --mold: 0deg; --external: 0deg">
-                <div><small>单位成本</small><strong id="donut-total">¥ --</strong></div>
-              </div>
-              <div id="cost-legend" class="legend empty-state">载入演示产品后显示实时成本构成</div>
-            </div>
-            <div class="divider"></div>
-            <div class="section-title"><h4>Assembly 成本穿透</h4><span>从报价层下钻至零件</span></div>
-            <div id="assembly-list" class="assembly-list empty-state">暂无组件数据</div>
-          </section>
-
-          <section class="panel evolution-panel">
-            <div class="panel-head">
-              <div><span class="eyebrow">FROM TRIAL TO MASS</span><h3>成本演化</h3></div>
-              <span class="live-dot">LIVE MODEL</span>
-            </div>
-            <div id="evolution-chart" class="evolution-chart">
-              <div class="chart-empty">数据载入后，将展示阶段成本收敛曲线。</div>
-            </div>
-            <div class="insight">
-              <span class="insight-mark">↘</span>
-              <div><strong>成本收敛建议</strong><p id="insight-text">系统将根据节拍与良率识别主要改善机会。</p></div>
-            </div>
-          </section>
-        </div>
-
-        <div class="grid-bottom">
-          <section id="quotation" class="panel quote-panel">
-            <div class="panel-head">
-              <div><span class="eyebrow">QUOTATION ENGINE</span><h3>智能报价台</h3></div>
-              <span class="badge badge-warm">风险自动计价</span>
-            </div>
-            <form id="quote-form">
-              <div class="form-grid">
-                <label>客户名称<input id="customer-name" value="未来美妆科技" /></label>
-                <label>报价数量<input id="quote-quantity" type="number" min="1" value="5000" /></label>
-                <label>目标毛利率<input id="target-margin" type="number" min="0" max="80" value="22" /><span class="suffix">%</span></label>
-              </div>
-              <div class="risk-row">
-                <label><input id="risk-product" type="checkbox" checked /><span>新品 +5%</span></label>
-                <label><input id="risk-customer" type="checkbox" /><span>新客户 +5%</span></label>
-                <label><input id="risk-batch" type="checkbox" checked /><span>小批量 +10%</span></label>
-              </div>
-              <button class="button button-dark" type="submit" disabled id="quote-button">生成正式报价</button>
-            </form>
-            <div id="quote-result" class="quote-result">
-              <span>建议含税前单价</span><strong>¥ --</strong><small>载入产品后即可生成</small>
-            </div>
-          </section>
-
-          <section id="versions" class="panel version-panel">
-            <div class="panel-head">
-              <div><span class="eyebrow">VERSION TREE</span><h3>成本版本追溯</h3></div>
-              <button id="snapshot-button" class="text-button" disabled>创建快照 +</button>
-            </div>
-            <div id="version-list" class="version-list empty-state">暂无成本快照</div>
-          </section>
-        </div>
-
-        <footer>
-          <span>MEGEE Manufacturing Cost Intelligence System</span>
-          <span>数据口径：CNY / 单件 / 未税</span>
-        </footer>
+        <section class="next-steps">
+          <div><b>2</b><span>下一步将核算工艺成本<small>把设备费率、人工、实际节拍和良率从 Excel 转入系统。</small></span></div>
+          <div><b>报告</b><span>BOM 报告已经可用<small>确认保存后，可导出含明细、公式和汇总的 Excel 报告。</small></span></div>
+        </section>
       </main>
     </div>
     <div id="toast" class="toast" role="status"></div>
-    <script src="/assets/app.js?v=1.2"></script>
+    <script src="/assets/app.js?v=2.0"></script>
   </body>
 </html>

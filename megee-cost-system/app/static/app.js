@@ -1,64 +1,11 @@
-const SKU_ID = "MEGEE-AIRLESS-30";
-const state = { costs: {}, currentStage: "trial", quote: null };
-
-const demoCatalog = {
-  skus: [{ sku_id: SKU_ID, name: "30ml 真空泵瓶套装", version: 1, packaging_cost: "0.260000", overhead_rate: "0.085000" }],
-  assemblies: [
-    { assembly_id: "ASM-BOTTLE", sku_id: SKU_ID, type: "bottle", name: "瓶体总成", assembly_cost: "0.045000" },
-    { assembly_id: "ASM-PUMP", sku_id: SKU_ID, type: "pump", name: "泵头总成", assembly_cost: "0.080000" },
-    { assembly_id: "ASM-CAP", sku_id: SKU_ID, type: "cap", name: "外盖总成", assembly_cost: "0.030000" }
-  ],
-  standard_components: [
-    { component_id: "STD-SPRING", name: "SUS304 泵芯弹簧", unit_price: "0.145000", supplier: "宁波精工弹簧" },
-    { component_id: "STD-GASKET", name: "食品级硅胶垫", unit_price: "0.085000", supplier: "台州密封科技" }
-  ],
-  parts: [
-    { part_id: "PART-BOTTLE", assembly_id: "ASM-BOTTLE", type: "manufactured", name: "AS 真空瓶体", material_cost: "0.620000" },
-    { part_id: "PART-PISTON", assembly_id: "ASM-BOTTLE", type: "manufactured", name: "PE 真空活塞", material_cost: "0.180000" },
-    { part_id: "PART-PUMP-HOUSING", assembly_id: "ASM-PUMP", type: "manufactured", name: "PP 泵体", material_cost: "0.280000" },
-    { part_id: "PART-SPRING", assembly_id: "ASM-PUMP", type: "standard", name: "泵芯弹簧", standard_component_id: "STD-SPRING" },
-    { part_id: "PART-GASKET", assembly_id: "ASM-PUMP", type: "standard", name: "密封垫", standard_component_id: "STD-GASKET" },
-    { part_id: "PART-CAP", assembly_id: "ASM-CAP", type: "manufactured", name: "ABS 外盖", material_cost: "0.320000" },
-    { part_id: "PART-PLATING", assembly_id: "ASM-CAP", type: "outsourced", name: "外盖真空镀膜" }
-  ],
-  routings: [
-    { routing_id: "RT-BOTTLE-INJ", part_id: "PART-BOTTLE", process_type: "injection", machine: "海天 280T", cycle_time: "38", labor_count: 1, machine_rate_per_hour: "118", labor_rate_per_hour: "24", yield_rate: "0.935" },
-    { routing_id: "RT-PISTON-INJ", part_id: "PART-PISTON", process_type: "injection", machine: "海天 160T", cycle_time: "22", labor_count: 1, machine_rate_per_hour: "82", labor_rate_per_hour: "24", yield_rate: "0.960" },
-    { routing_id: "RT-PUMP-INJ", part_id: "PART-PUMP-HOUSING", process_type: "injection", machine: "震雄 180T", cycle_time: "26", labor_count: 1, machine_rate_per_hour: "88", labor_rate_per_hour: "24", yield_rate: "0.955" },
-    { routing_id: "RT-PUMP-ASM", part_id: "PART-PUMP-HOUSING", process_type: "assembly", machine: "半自动泵头线", cycle_time: "8", labor_count: 2, machine_rate_per_hour: "35", labor_rate_per_hour: "24", yield_rate: "0.985" },
-    { routing_id: "RT-CAP-INJ", part_id: "PART-CAP", process_type: "injection", machine: "海天 200T", cycle_time: "28", labor_count: 1, machine_rate_per_hour: "96", labor_rate_per_hour: "24", yield_rate: "0.945" }
-  ],
-  molds: [
-    { mold_id: "MOLD-BOTTLE-01", part_id: "PART-BOTTLE", cost: "168000", cavity: 2, planned_output: 1200000, actual_output: 12600, lifecycle_status: "trial" },
-    { mold_id: "MOLD-PISTON-01", part_id: "PART-PISTON", cost: "86000", cavity: 4, planned_output: 1600000, actual_output: 11800, lifecycle_status: "pilot" },
-    { mold_id: "MOLD-PUMP-01", part_id: "PART-PUMP-HOUSING", cost: "126000", cavity: 4, planned_output: 1500000, actual_output: 10400, lifecycle_status: "pilot" },
-    { mold_id: "MOLD-CAP-01", part_id: "PART-CAP", cost: "98000", cavity: 4, planned_output: 1400000, actual_output: 12200, lifecycle_status: "pilot" }
-  ],
-  outsourced_parts: [
-    { outsourced_id: "OUT-PLATING-A", part_id: "PART-PLATING", supplier: "嘉兴华彩", process_type: "vacuum_plating", unit_price: "0.420000", yield_assumption: "0.960", lead_time: 7 },
-    { outsourced_id: "OUT-PLATING-B", part_id: "PART-PLATING", supplier: "绍兴新饰界", process_type: "vacuum_plating", unit_price: "0.450000", yield_assumption: "0.985", lead_time: 6 }
-  ]
-};
-
-const productionRecords = [
-  { record_id: "DEMO-TRIAL-BOTTLE", part_id: "PART-BOTTLE", process_type: "injection", qty: 1600, good_qty: 1398, cycle_time_actual: "43.5", scrap_qty: 202, source: "trial" },
-  { record_id: "DEMO-PILOT-BOTTLE", part_id: "PART-BOTTLE", process_type: "injection", qty: 8000, good_qty: 7544, cycle_time_actual: "39.4", scrap_qty: 456, source: "pilot" },
-  { record_id: "DEMO-TRIAL-PISTON", part_id: "PART-PISTON", process_type: "injection", qty: 1800, good_qty: 1656, cycle_time_actual: "24.2", scrap_qty: 144, source: "trial" },
-  { record_id: "DEMO-PILOT-PISTON", part_id: "PART-PISTON", process_type: "injection", qty: 8200, good_qty: 7945, cycle_time_actual: "22.7", scrap_qty: 255, source: "pilot" },
-  { record_id: "DEMO-TRIAL-PUMP-INJ", part_id: "PART-PUMP-HOUSING", process_type: "injection", qty: 1500, good_qty: 1322, cycle_time_actual: "29.8", scrap_qty: 178, source: "trial" },
-  { record_id: "DEMO-TRIAL-PUMP-ASM", part_id: "PART-PUMP-HOUSING", process_type: "assembly", qty: 1322, good_qty: 1255, cycle_time_actual: "9.2", scrap_qty: 67, source: "trial" },
-  { record_id: "DEMO-PILOT-PUMP-INJ", part_id: "PART-PUMP-HOUSING", process_type: "injection", qty: 7600, good_qty: 7240, cycle_time_actual: "27.1", scrap_qty: 360, source: "pilot" },
-  { record_id: "DEMO-PILOT-PUMP-ASM", part_id: "PART-PUMP-HOUSING", process_type: "assembly", qty: 7240, good_qty: 7075, cycle_time_actual: "8.3", scrap_qty: 165, source: "pilot" },
-  { record_id: "DEMO-TRIAL-CAP", part_id: "PART-CAP", process_type: "injection", qty: 1600, good_qty: 1435, cycle_time_actual: "31.1", scrap_qty: 165, source: "trial" },
-  { record_id: "DEMO-PILOT-CAP", part_id: "PART-CAP", process_type: "injection", qty: 7900, good_qty: 7532, cycle_time_actual: "28.8", scrap_qty: 368, source: "pilot" }
-];
-
+const state = { skus: [], worksheet: null, saved: false };
 const $ = (selector) => document.querySelector(selector);
-const money = (value) => `¥ ${Number(value || 0).toFixed(3)}`;
-const percentage = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
+const money = (value) => `¥ ${Number(value || 0).toFixed(6)}`;
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+const typeLabels = { manufactured: "自制物料", standard: "外购 / 标准配件", outsourced: "外协 / 装饰工艺" };
 
 async function request(path, options = {}) {
-  const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const response = await fetch(path, { headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.detail || `请求失败 (${response.status})`);
@@ -70,406 +17,297 @@ function toast(message) {
   const element = $("#toast");
   element.textContent = message;
   element.classList.add("show");
-  window.clearTimeout(toast.timer);
-  toast.timer = window.setTimeout(() => element.classList.remove("show"), 2600);
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => element.classList.remove("show"), 2800);
 }
 
-async function checkHealth() {
+async function initialize() {
   try {
     await request("/health");
     $("#api-status").className = "status online";
-    $("#api-status").innerHTML = "<i></i>引擎在线";
-    const skus = await request("/catalog/skus");
-    if (skus.items.some((item) => item.sku_id === SKU_ID)) await loadDashboard();
+    $("#api-status").innerHTML = "<i></i>系统在线";
+    const data = await request("/catalog/skus");
+    state.skus = data.items;
+    renderSkuOptions();
+    if (state.skus.length) await loadSku(state.skus[0].sku_id);
+    else createNewProduct();
   } catch (error) {
     $("#api-status").className = "status error";
     $("#api-status").innerHTML = "<i></i>连接失败";
-  }
-}
-
-async function seedDemo() {
-  const button = $("#seed-button");
-  button.disabled = true;
-  button.textContent = "正在构建成本模型...";
-  try {
-    await request("/catalog/import", { method: "POST", body: JSON.stringify(demoCatalog) });
-    await Promise.all(productionRecords.map((record) =>
-      request("/production/input", { method: "POST", body: JSON.stringify(record) }).catch((error) => {
-        if (!String(error.message).includes("already exists")) throw error;
-      })
-    ));
-    await loadDashboard();
-    toast("演示产品已载入，成本模型计算完成");
-  } catch (error) {
     toast(error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = "刷新演示产品";
   }
 }
 
-async function loadDashboard() {
-  const stages = ["standard", "trial", "pilot", "mass"];
-  const results = await Promise.all(stages.map((stage) =>
-    request("/cost/compute", { method: "POST", body: JSON.stringify({ sku_id: SKU_ID, stage }) })
-  ));
-  stages.forEach((stage, index) => { state.costs[stage] = results[index]; });
-  $("#stage-select").disabled = false;
-  $("#quote-button").disabled = false;
-  $("#snapshot-button").disabled = false;
-  $("#sku-badge").textContent = SKU_ID;
-  renderStage();
-  renderEvolution();
-  await renderVersions();
-  await loadFieldOperations();
-  await renderApprovals();
-  calculatePreviewPrice();
+function renderSkuOptions(selected = "") {
+  const select = $("#sku-select");
+  select.innerHTML = '<option value="">选择产品...</option>' + state.skus.map((sku) => `<option value="${escapeHtml(sku.sku_id)}">${escapeHtml(sku.sku_id)} · ${escapeHtml(sku.name)}</option>`).join("");
+  select.value = selected;
 }
 
-async function loadFieldOperations() {
-  const data = await request(`/catalog/skus/${SKU_ID}/operations`);
-  const select = $("#field-operation");
-  select.innerHTML = data.items.map((item) => `<option value="${item.part_id}|${item.process_type}" data-cycle="${item.standard_cycle_time}">${item.part_name} · ${item.process_type}（标准 ${Number(item.standard_cycle_time)}s）</option>`).join("");
-  select.disabled = !data.items.length;
-  $("#field-submit").disabled = !data.items.length;
-  if (data.items.length) {
-    $("#field-cycle").value = Number(data.items[0].standard_cycle_time);
-    await previewFieldCost();
-  }
-}
-
-async function previewFieldCost() {
-  if ($("#field-operation").disabled || !$("#field-operation").value.includes("|")) return;
-  const [partId, processType] = $("#field-operation").value.split("|");
-  const qty = Number($("#field-qty").value);
-  const goodQty = Number($("#field-good-qty").value);
-  const cycle = Number($("#field-cycle").value);
-  const panel = $("#calculation-preview");
-  if (!qty || !goodQty || !cycle || goodQty > qty) {
-    panel.innerHTML = '<div class="preview-placeholder">请输入有效数据：良品数量不能超过投入数量。</div>';
-    return;
-  }
-  panel.classList.add("loading");
+async function loadSku(skuId) {
+  if (!skuId) return;
   try {
-    const data = await request("/cost-data/preview", {
-      method: "POST",
-      body: JSON.stringify({
-        sku_id: SKU_ID,
-        production: {
-          record_id: `PREVIEW-${Date.now()}`, part_id: partId, process_type: processType,
-          qty, good_qty: goodQty, scrap_qty: qty - goodQty,
-          cycle_time_actual: String(cycle), source: $("#field-stage").value
-        }
-      })
-    });
-    renderCalculationPreview(data);
-  } catch (error) {
-    panel.innerHTML = `<div class="preview-placeholder">${escapeHtml(error.message)}</div>`;
-  } finally { panel.classList.remove("loading"); }
-}
-
-function renderCalculationPreview(data) {
-  const op = data.operation; const agg = data.aggregation; const formula = data.formula; const impact = data.sku_impact;
-  const delta = Number(impact.delta);
-  $("#calculation-preview").innerHTML = `
-    <div class="preview-head"><strong>第二步：查看系统怎么算</strong><span>${escapeHtml(op.part_name)} / ${escapeHtml(op.process_type)}</span></div>
-    <div class="parameter-strip">
-      <div><small>材料基准</small><b>${money(op.material_cost)}</b></div>
-      <div><small>设备费率</small><b>¥${Number(op.machine_rate_per_hour).toFixed(2)}/h</b></div>
-      <div><small>人工</small><b>${op.labor_count}人 × ¥${Number(op.labor_rate_per_hour).toFixed(2)}/h</b></div>
-      <div><small>模具摊销</small><b>${money(op.mold_unit_cost)}/件</b></div>
-    </div>
-    <div class="formula-flow">
-      <div class="formula-title"><strong>所选工序成本推导</strong><span>历史 ${agg.existing_record_count} 条 + 本次 1 条</span></div>
-      <div class="formula-line"><b>01</b><div class="formula-copy"><strong>综合小时费率</strong><small>设备 ${Number(op.machine_rate_per_hour).toFixed(2)} + 人工 ${op.labor_count} × ${Number(op.labor_rate_per_hour).toFixed(2)}</small></div><span class="formula-result">¥${Number(formula.hourly_rate).toFixed(3)}/h</span></div>
-      <div class="formula-line"><b>02</b><div class="formula-copy"><strong>标准节拍工艺成本</strong><small>${Number(formula.hourly_rate).toFixed(3)} × ${Number(op.standard_cycle_time).toFixed(2)}秒 ÷ 3600</small></div><span class="formula-result">${money(formula.raw_process_cost)}</span></div>
-      <div class="formula-line"><b>03</b><div class="formula-copy"><strong>实际节拍修正</strong><small>加权周期 ${Number(agg.projected_cycle_time).toFixed(2)}秒 ÷ 标准 ${Number(op.standard_cycle_time).toFixed(2)}秒</small></div><span class="formula-result">× ${Number(formula.process_factor).toFixed(3)}</span></div>
-      <div class="formula-line"><b>04</b><div class="formula-copy"><strong>良率成本修正</strong><small>累计投入 ${agg.projected_qty} ÷ 良品 ${agg.projected_good_qty}，良率 ${percentage(agg.projected_yield)}</small></div><span class="formula-result">× ${Number(formula.yield_cost_factor).toFixed(3)}</span></div>
-      <div class="formula-line"><b>05</b><div class="formula-copy"><strong>该工序预计单位成本</strong><small>标准工艺成本 × 节拍因子 × 良率因子</small></div><span class="formula-result">${money(formula.projected_process_cost)}</span></div>
-    </div>
-    <div class="sku-impact">
-      <div><small>当前 ${impact.stage.toUpperCase()} SKU 成本</small><strong>${money(impact.current_total_cost)}</strong></div><i>→</i><div class="projected"><small>若批准采用后的成本</small><strong>${money(impact.projected_total_cost)}</strong></div>
-      <span class="impact-note">预计变化 ${delta >= 0 ? "+" : ""}${money(delta)}；这里只试算，尚未写入正式成本。</span>
-    </div>`;
-}
-
-async function submitFieldData(event) {
-  event.preventDefault();
-  const [partId, processType] = $("#field-operation").value.split("|");
-  const qty = Number($("#field-qty").value);
-  const goodQty = Number($("#field-good-qty").value);
-  if (goodQty > qty) return toast("良品数量不能大于投入数量");
-  const recordId = `FIELD-${Date.now()}`;
-  try {
-    await request("/cost-data/submissions", {
-      method: "POST",
-      body: JSON.stringify({
-        sku_id: SKU_ID,
-        submitted_by: $("#collector-name").value,
-        source_mode: "onsite",
-        production: {
-          record_id: recordId, part_id: partId, process_type: processType,
-          qty, good_qty: goodQty, scrap_qty: qty - goodQty,
-          cycle_time_actual: String($("#field-cycle").value), source: $("#field-stage").value
-        }
-      })
-    });
-    await renderApprovals();
-    toast(`现场数据 ${recordId} 已提交，等待审批`);
+    const data = await request(`/costing/skus/${encodeURIComponent(skuId)}/bom`);
+    state.worksheet = data;
+    state.saved = true;
+    $("#sku-select").value = skuId;
+    const sku = state.skus.find((item) => item.sku_id === skuId);
+    $("#sku-version").textContent = sku ? `V${sku.version}` : "--";
+    $("#worksheet-status").textContent = "已载入";
+    fillProductFields(data);
+    renderRows();
+    renderPreview(data.preview);
+    updateLineResults(data.preview.lines);
+    updateButtons();
   } catch (error) { toast(error.message); }
 }
 
-async function renderApprovals() {
-  const data = await request(`/cost-data/submissions?sku_id=${encodeURIComponent(SKU_ID)}&submission_status=pending`);
-  const list = $("#approval-list");
-  $("#pending-count").textContent = data.items.length;
-  if (!data.items.length) {
-    list.className = "approval-list empty-state";
-    list.textContent = "暂无待审批数据";
+function createNewProduct() {
+  state.worksheet = {
+    sku_id: "",
+    sku_name: "",
+    packaging_cost: "0",
+    overhead_rate: "0",
+    updated_by: "成本核算员",
+    reason: "BOM成本参数确认",
+    items: [blankRow()],
+  };
+  state.saved = false;
+  $("#sku-select").value = "";
+  $("#sku-version").textContent = "新产品";
+  $("#worksheet-status").textContent = "待填写";
+  fillProductFields(state.worksheet);
+  renderRows();
+  schedulePreview();
+  updateButtons();
+}
+
+function blankRow(index = Date.now()) {
+  return {
+    assembly_id: `ASM-${String(index).slice(-4)}`,
+    assembly_name: "",
+    assembly_type: "custom",
+    part_id: `PART-${String(index).slice(-6)}`,
+    part_name: "",
+    cost_type: "manufactured",
+    quantity: "1",
+    unit_price: "0",
+    supplier: "",
+    yield_rate: "1",
+    source_note: "",
+  };
+}
+
+function fillProductFields(data) {
+  $("#sku-id").value = data.sku_id || "";
+  $("#sku-name").value = data.sku_name || "";
+  $("#packaging-cost").value = Number(data.packaging_cost || 0);
+  $("#overhead-rate").value = Number(data.overhead_rate || 0) * 100;
+}
+
+function renderRows() {
+  const body = $("#bom-body");
+  if (!state.worksheet?.items?.length) {
+    body.innerHTML = '<tr><td colspan="9" class="empty">暂无 BOM 明细，请添加零件。</td></tr>';
     return;
   }
-  list.className = "approval-list";
-  list.innerHTML = data.items.map((item) => {
-    const row = item.payload;
-    const yieldRate = Number(row.good_qty) / Number(row.qty) * 100;
-    return `<article class="approval-item" data-submission-id="${item.submission_id}">
-      <div class="approval-top"><strong>${escapeHtml(row.part_id)} · ${escapeHtml(row.process_type)}</strong><span>${item.source_mode === "import" ? "CSV 导入" : "现场录入"}</span></div>
-      <div class="approval-values"><div><small>投入</small><b>${row.qty}</b></div><div><small>良品</small><b>${row.good_qty}</b></div><div><small>良率</small><b>${yieldRate.toFixed(1)}%</b></div><div><small>周期</small><b>${Number(row.cycle_time_actual)}s</b></div></div>
-      <div class="approval-meta">${escapeHtml(item.submitted_by)} · ${escapeHtml(row.source.toUpperCase())} · ${new Date(item.submitted_at).toLocaleString("zh-CN")}</div>
-      <div class="approval-actions"><button class="mini-button reject" data-action="reject">驳回</button><button class="mini-button approve" data-action="approve">批准采用</button></div>
-    </article>`;
-  }).join("");
-  list.querySelectorAll("button").forEach((button) => button.addEventListener("click", reviewSubmission));
+  body.innerHTML = state.worksheet.items.map((row, index) => `
+    <tr data-index="${index}">
+      <td class="row-number">${index + 1}</td>
+      <td class="identity-cell">
+        <input data-field="assembly_name" value="${escapeHtml(row.assembly_name)}" placeholder="组件名称" aria-label="第${index + 1}行组件名称" />
+        <input class="part-name" data-field="part_name" value="${escapeHtml(row.part_name)}" placeholder="零件名称" aria-label="第${index + 1}行零件名称" />
+        <div><input data-field="assembly_id" value="${escapeHtml(row.assembly_id)}" aria-label="第${index + 1}行组件编号" /><input data-field="part_id" value="${escapeHtml(row.part_id)}" aria-label="第${index + 1}行零件编号" /></div>
+      </td>
+      <td><select data-field="cost_type" aria-label="第${index + 1}行成本类型">${Object.entries(typeLabels).map(([value, label]) => `<option value="${value}" ${row.cost_type === value ? "selected" : ""}>${label}</option>`).join("")}</select></td>
+      <td><input class="number" data-field="quantity" type="number" min="0.000001" step="0.000001" value="${Number(row.quantity)}" aria-label="第${index + 1}行单件用量" /></td>
+      <td><input class="number" data-field="unit_price" type="number" min="0" step="0.000001" value="${Number(row.unit_price)}" aria-label="第${index + 1}行未税单价" /></td>
+      <td><input data-field="supplier" value="${escapeHtml(row.supplier)}" placeholder="供应商" aria-label="第${index + 1}行供应商" /><input class="source-note" data-field="source_note" value="${escapeHtml(row.source_note)}" placeholder="报价单/核价日期" aria-label="第${index + 1}行数据来源" /></td>
+      <td><input class="number yield-input" data-field="yield_rate" type="number" min="0.000001" max="1" step="0.001" value="${Number(row.yield_rate || 1)}" ${row.cost_type === "outsourced" ? "" : "disabled"} aria-label="第${index + 1}行良率" /><small>${row.cost_type === "outsourced" ? "0~1" : "不适用"}</small></td>
+      <td class="line-cost"><strong>${money(row.line_cost)}</strong><small>${escapeHtml(row.formula || "等待试算")}</small></td>
+      <td><button class="remove-row" data-action="remove" type="button" aria-label="删除第${index + 1}行">×</button></td>
+    </tr>`).join("");
 }
 
-async function reviewSubmission(event) {
-  const item = event.target.closest(".approval-item");
-  const action = event.target.dataset.action;
-  const reviewer = $("#reviewer-name").value.trim();
-  if (!reviewer) return toast("请填写审核人");
-  event.target.disabled = true;
+function collectWorksheet() {
+  const items = [...document.querySelectorAll("#bom-body tr[data-index]")].map((tr) => {
+    const read = (field) => tr.querySelector(`[data-field="${field}"]`).value.trim();
+    return {
+      assembly_id: read("assembly_id"),
+      assembly_name: read("assembly_name"),
+      assembly_type: state.worksheet.items[Number(tr.dataset.index)]?.assembly_type || "custom",
+      part_id: read("part_id"),
+      part_name: read("part_name"),
+      cost_type: read("cost_type"),
+      quantity: read("quantity"),
+      unit_price: read("unit_price"),
+      supplier: read("supplier"),
+      yield_rate: read("yield_rate") || "1",
+      source_note: read("source_note"),
+    };
+  });
+  return {
+    sku_id: $("#sku-id").value.trim(),
+    sku_name: $("#sku-name").value.trim(),
+    packaging_cost: $("#packaging-cost").value || "0",
+    overhead_rate: String(Number($("#overhead-rate").value || 0) / 100),
+    updated_by: "成本核算员",
+    reason: "BOM成本参数确认",
+    items,
+  };
+}
+
+function validateWorksheet(payload) {
+  if (!payload.sku_id || !payload.sku_name) return "请填写产品编号和产品名称";
+  if (!payload.items.length) return "请至少添加一个 BOM 零件";
+  for (const [index, row] of payload.items.entries()) {
+    if (!row.assembly_id || !row.assembly_name || !row.part_id || !row.part_name) return `第 ${index + 1} 行的组件或零件信息不完整`;
+    if (Number(row.quantity) <= 0) return `第 ${index + 1} 行用量必须大于 0`;
+    if (Number(row.unit_price) < 0) return `第 ${index + 1} 行单价不能小于 0`;
+    if (row.cost_type === "outsourced" && (Number(row.yield_rate) <= 0 || Number(row.yield_rate) > 1)) return `第 ${index + 1} 行外协良率应在 0 到 1 之间`;
+  }
+  return "";
+}
+
+function schedulePreview() {
+  clearTimeout(schedulePreview.timer);
+  schedulePreview.timer = setTimeout(previewWorksheet, 250);
+}
+
+async function previewWorksheet() {
+  const payload = collectWorksheet();
+  const validation = validateWorksheet(payload);
+  if (validation) {
+    $("#worksheet-status").textContent = "待补充";
+    $("#apply-button").disabled = true;
+    return;
+  }
   try {
-    const result = await request(`/cost-data/submissions/${item.dataset.submissionId}/${action}`, {
-      method: "POST",
-      body: JSON.stringify({ reviewed_by: reviewer, comment: action === "approve" ? "数据核对无误，同意采用" : "数据异常，退回现场复核" })
-    });
-    if (action === "approve") {
-      await loadDashboard();
-      toast(`已批准生效，成本变化 ${money(result.cost_impact.delta)}`);
-    } else {
-      await renderApprovals();
-      toast("数据已驳回，不参与成本核算");
-    }
-  } catch (error) { toast(error.message); event.target.disabled = false; }
+    const preview = await request("/costing/bom/preview", { method: "POST", body: JSON.stringify(payload) });
+    state.worksheet = { ...payload, items: preview.lines };
+    state.saved = false;
+    $("#worksheet-status").textContent = "试算中";
+    renderPreview(preview);
+    updateLineResults(preview.lines);
+    updateButtons();
+  } catch (error) { toast(error.message); }
 }
 
-function downloadCsvTemplate() {
-  const content = [
-    "record_id,part_id,process_type,qty,good_qty,cycle_time_actual,scrap_qty,source",
-    `IMPORT-${Date.now()},PART-BOTTLE,injection,1000,950,39.2,50,pilot`
-  ].join("\n");
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob(["\uFEFF", content], { type: "text/csv;charset=utf-8" }));
-  link.download = "megee-production-cost-template.csv";
-  link.click();
-  URL.revokeObjectURL(link.href);
+function renderPreview(preview) {
+  if (!preview) return;
+  $("#bom-total").textContent = money(preview.bom_total);
+  $("#manufactured-total").textContent = money(preview.manufactured_cost);
+  $("#standard-total").textContent = money(preview.standard_component_cost);
+  $("#outsourced-total").textContent = money(preview.outsourced_cost);
+  $("#packaging-total").textContent = money(preview.packaging_cost);
 }
 
-async function importCsv(event) {
+function updateLineResults(lines) {
+  document.querySelectorAll("#bom-body tr[data-index]").forEach((tr) => {
+    const line = lines[Number(tr.dataset.index)];
+    if (!line) return;
+    tr.querySelector(".line-cost strong").textContent = money(line.line_cost);
+    tr.querySelector(".line-cost small").textContent = line.formula;
+    const yieldInput = tr.querySelector('[data-field="yield_rate"]');
+    const outsourced = tr.querySelector('[data-field="cost_type"]').value === "outsourced";
+    yieldInput.disabled = !outsourced;
+    yieldInput.nextElementSibling.textContent = outsourced ? "0~1" : "不适用";
+  });
+}
+
+function updateButtons() {
+  const valid = state.worksheet && !validateWorksheet(collectWorksheet());
+  $("#apply-button").disabled = !valid;
+  $("#report-button").disabled = !state.saved || !state.worksheet?.sku_id;
+  $("#save-note").textContent = state.saved ? "当前数据已保存。继续修改后需再次确认。" : "当前为试算数据，尚未写入正式成本。";
+}
+
+async function applyWorksheet() {
+  const payload = collectWorksheet();
+  const validation = validateWorksheet(payload);
+  if (validation) return toast(validation);
+  const button = $("#apply-button");
+  button.disabled = true;
+  button.textContent = "正在保存并生成版本...";
+  try {
+    const result = await request("/costing/bom/apply", { method: "POST", body: JSON.stringify(payload) });
+    state.saved = true;
+    state.worksheet = { ...payload, items: result.bom_preview.lines };
+    $("#worksheet-status").textContent = "已确认";
+    $("#sku-version").textContent = `V${result.sku_version}`;
+    $("#saved-result").classList.remove("hidden");
+    $("#saved-result").innerHTML = `<strong>已生成成本版本</strong><span>${escapeHtml(result.version_id)}</span><small>当前标准总成本 ${money(result.standard_cost.total_cost)}</small>`;
+    const catalog = await request("/catalog/skus");
+    state.skus = catalog.items;
+    renderSkuOptions(payload.sku_id);
+    updateButtons();
+    toast("BOM 成本已确认并生成版本");
+  } catch (error) { toast(error.message); }
+  finally { button.textContent = "确认 BOM 成本并生成版本"; updateButtons(); }
+}
+
+async function importExcel(event) {
   const file = event.target.files[0];
   if (!file) return;
+  const form = new FormData();
+  form.append("file", file);
   try {
-    const lines = (await file.text()).replace(/^\uFEFF/, "").trim().split(/\r?\n/);
-    const headers = parseCsvLine(lines.shift());
-    const required = ["record_id", "part_id", "process_type", "qty", "good_qty", "cycle_time_actual", "scrap_qty", "source"];
-    if (!required.every((name) => headers.includes(name))) throw new Error("CSV 表头不符合模板");
-    const rows = lines.filter(Boolean).map((line) => {
-      const values = parseCsvLine(line);
-      const row = Object.fromEntries(headers.map((header, index) => [header, values[index]]));
-      return { ...row, qty: Number(row.qty), good_qty: Number(row.good_qty), scrap_qty: Number(row.scrap_qty) };
-    });
-    const result = await request("/cost-data/import", {
-      method: "POST",
-      body: JSON.stringify({ sku_id: SKU_ID, submitted_by: $("#collector-name").value, rows })
-    });
-    await renderApprovals();
-    toast(`已导入 ${result.count} 条数据，全部等待审批`);
-  } catch (error) { toast(error.message); }
+    $("#worksheet-status").textContent = "正在导入";
+    const response = await fetch("/costing/bom/import", { method: "POST", body: form });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Excel 导入失败");
+    state.worksheet = data;
+    state.saved = false;
+    $("#sku-select").value = "";
+    $("#sku-version").textContent = "待确认";
+    $("#worksheet-status").textContent = "Excel 已导入";
+    fillProductFields(data);
+    renderRows();
+    renderPreview(data.preview);
+    updateLineResults(data.preview.lines);
+    updateButtons();
+    toast(`已导入 ${data.items.length} 条 BOM，请逐行核对`);
+  } catch (error) { toast(error.message); $("#worksheet-status").textContent = "导入失败"; }
   event.target.value = "";
 }
 
-function parseCsvLine(line) {
-  const values = []; let current = ""; let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"' && line[index + 1] === '"') { current += '"'; index += 1; }
-    else if (char === '"') quoted = !quoted;
-    else if (char === "," && !quoted) { values.push(current.trim()); current = ""; }
-    else current += char;
-  }
-  values.push(current.trim());
-  return values;
+function addRow() {
+  const payload = collectWorksheet();
+  state.worksheet = { ...payload, items: [...payload.items, blankRow()] };
+  renderRows();
+  schedulePreview();
 }
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+function removeRow(index) {
+  const payload = collectWorksheet();
+  payload.items.splice(index, 1);
+  state.worksheet = payload;
+  renderRows();
+  schedulePreview();
 }
 
-function renderStage() {
-  const cost = state.costs[state.currentStage];
-  if (!cost) return;
-  const standard = Number(state.costs.standard.total_cost);
-  const current = Number(cost.total_cost);
-  const delta = standard ? (current - standard) / standard : 0;
-  const stageNames = { standard: "标准成本", trial: "试模成本", pilot: "小批成本", mass: "量产成本" };
-
-  $("#hero-cost").textContent = money(current);
-  $("#hero-delta").textContent = state.currentStage === "standard" ? "当前为标准工艺假设" : `较标准成本 ${delta >= 0 ? "+" : ""}${(delta * 100).toFixed(1)}%`;
-  $("#metric-cost").textContent = money(current);
-  $("#metric-stage").textContent = stageNames[state.currentStage];
-  $("#metric-yield").textContent = state.currentStage === "trial" ? "89.1%" : state.currentStage === "pilot" ? "95.4%" : "94.8%";
-  $("#metric-mold").textContent = state.currentStage === "trial" ? "Trial" : state.currentStage === "pilot" ? "Pilot" : "Stable";
-  $("#metric-output").textContent = "累计 47,000 模次";
-
-  renderCostComposition(cost);
-  renderAssemblies(cost.assemblies, current);
-  calculatePreviewPrice();
+function downloadTemplate() {
+  const skuId = state.saved ? $("#sku-id").value.trim() : "";
+  window.location.href = skuId ? `/costing/bom/template/${encodeURIComponent(skuId)}` : "/costing/bom/template";
 }
 
-function renderCostComposition(cost) {
-  const items = [
-    ["材料", Number(cost.material_cost), "#d99b27"],
-    ["工艺", Number(cost.process_cost), "#258760"],
-    ["模具", Number(cost.mold_cost), "#7157b7"],
-    ["标准件 / 外协", Number(cost.standard_component_cost) + Number(cost.outsourced_cost), "#3979c5"],
-    ["装配 / 包材 / 制造费", Number(cost.assembly_cost) + Number(cost.packaging_cost) + Number(cost.overhead_cost), "#a6a79f"]
-  ];
-  const total = Number(cost.total_cost);
-  let degrees = 0;
-  const stops = items.slice(0, 4).map((item) => {
-    degrees += total ? item[1] / total * 360 : 0;
-    return `${degrees}deg`;
-  });
-  const donut = $("#cost-donut");
-  donut.style.setProperty("--material", stops[0]);
-  donut.style.setProperty("--process", stops[1]);
-  donut.style.setProperty("--mold", stops[2]);
-  donut.style.setProperty("--external", stops[3]);
-  $("#donut-total").textContent = money(total);
-  $("#cost-legend").classList.remove("empty-state");
-  $("#cost-legend").innerHTML = items.map(([label, value, color]) => `
-    <div class="legend-row"><i style="background:${color}"></i><span>${label}</span><strong>${money(value)} · ${percentage(value / total)}</strong></div>
-  `).join("");
+function downloadReport() {
+  const skuId = $("#sku-id").value.trim();
+  if (skuId && state.saved) window.location.href = `/costing/bom/report/${encodeURIComponent(skuId)}`;
 }
 
-function renderAssemblies(assemblies, total) {
-  const list = $("#assembly-list");
-  list.classList.remove("empty-state");
-  list.innerHTML = assemblies.map((assembly, index) => `
-    <div class="assembly-row">
-      <span class="assembly-index">0${index + 1}</span>
-      <div class="assembly-name"><strong>${assembly.name}</strong><span>${assembly.parts.length} 个零件 · ${assembly.type.toUpperCase()}</span></div>
-      <div class="assembly-bar"><i style="width:${Math.min(100, Number(assembly.total_cost) / total * 100)}%"></i></div>
-      <span class="assembly-price">${money(assembly.total_cost)}</span>
-    </div>
-  `).join("");
-}
+$("#sku-select").addEventListener("change", (event) => loadSku(event.target.value));
+$("#new-product").addEventListener("click", createNewProduct);
+$("#excel-input").addEventListener("change", importExcel);
+$("#template-button").addEventListener("click", downloadTemplate);
+$("#report-button").addEventListener("click", downloadReport);
+$("#add-row").addEventListener("click", addRow);
+$("#apply-button").addEventListener("click", applyWorksheet);
+$("#bom-body").addEventListener("input", schedulePreview);
+$("#bom-body").addEventListener("change", schedulePreview);
+$("#bom-body").addEventListener("click", (event) => {
+  if (event.target.dataset.action === "remove") removeRow(Number(event.target.closest("tr").dataset.index));
+});
+document.querySelectorAll("#sku-id, #sku-name, #packaging-cost, #overhead-rate").forEach((input) => input.addEventListener("input", schedulePreview));
 
-function renderEvolution() {
-  const stages = [
-    ["standard", "标准"], ["trial", "试模"], ["pilot", "小批"], ["mass", "量产"]
-  ];
-  const values = stages.map(([key]) => Number(state.costs[key].total_cost));
-  const max = Math.max(...values) * 1.08;
-  $("#evolution-chart").innerHTML = `<div class="chart-bars">${stages.map(([key, label], index) => `
-    <div class="chart-column ${key === state.currentStage ? "active" : ""}" data-stage="${key}">
-      <span class="chart-value">${money(values[index])}</span>
-      <div class="chart-bar" style="height:${values[index] / max * 190}px"></div>
-      <span class="chart-label">${label}</span>
-    </div>`).join("")}</div>`;
-  const trial = Number(state.costs.trial.total_cost);
-  const pilot = Number(state.costs.pilot.total_cost);
-  $("#insight-text").textContent = `小批阶段较试模下降 ${((trial - pilot) / trial * 100).toFixed(1)}%，主要来自瓶体节拍与泵头装配良率改善。`;
-  document.querySelectorAll(".chart-column").forEach((column) => column.addEventListener("click", () => {
-    state.currentStage = column.dataset.stage;
-    $("#stage-select").value = state.currentStage;
-    renderStage(); renderEvolution();
-  }));
-}
-
-function calculatePreviewPrice() {
-  const cost = state.costs[state.currentStage];
-  if (!cost) return;
-  const risk = ($("#risk-product").checked ? .05 : 0) + ($("#risk-customer").checked ? .05 : 0) + ($("#risk-batch").checked ? .10 : 0) + .03;
-  const margin = Number($("#target-margin").value) / 100;
-  const price = Number(cost.total_cost) * (1 + risk) / (1 - margin);
-  $("#metric-price").textContent = money(price);
-  $("#quote-result").innerHTML = `<span>建议含税前单价</span><strong>${money(price)}</strong><small>风险加成 ${(risk * 100).toFixed(0)}% · 毛利 ${Math.round(margin * 100)}%</small>`;
-}
-
-async function generateQuote(event) {
-  event.preventDefault();
-  try {
-    const result = await request("/quotation/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        sku_id: SKU_ID, stage: state.currentStage, customer_name: $("#customer-name").value,
-        quantity: Number($("#quote-quantity").value), target_margin: String(Number($("#target-margin").value) / 100),
-        is_new_product: $("#risk-product").checked, is_new_customer: $("#risk-customer").checked,
-        is_small_batch: $("#risk-batch").checked, currency: "CNY"
-      })
-    });
-    state.quote = result;
-    $("#metric-price").textContent = money(result.unit_price);
-    $("#quote-result").innerHTML = `<span>${result.quotation_no}</span><strong>${money(result.unit_price)}</strong><small>总额 ${money(result.total_price)} · 已保存</small>`;
-    toast(`报价 ${result.quotation_no} 已生成并保存`);
-  } catch (error) { toast(error.message); }
-}
-
-async function createSnapshot() {
-  const versions = await request(`/cost/versions/${SKU_ID}`);
-  const parent = versions.items[0]?.version_id || null;
-  const versionId = `CV-${state.currentStage.toUpperCase()}-${Date.now().toString().slice(-6)}`;
-  try {
-    await request("/cost/version/create", {
-      method: "POST",
-      body: JSON.stringify({ version_id: versionId, parent_version_id: parent, sku_id: SKU_ID, stage: state.currentStage, version_type: state.currentStage === "standard" ? "adjusted" : state.currentStage, reason: "驾驶舱手动快照" })
-    });
-    await renderVersions();
-    toast(`成本快照 ${versionId} 已创建`);
-  } catch (error) { toast(error.message); }
-}
-
-async function renderVersions() {
-  const data = await request(`/cost/versions/${SKU_ID}`);
-  const list = $("#version-list");
-  if (!data.items.length) {
-    list.className = "version-list empty-state";
-    list.textContent = "点击“创建快照”固化当前成本";
-    return;
-  }
-  list.className = "version-list";
-  list.innerHTML = data.items.slice(0, 5).map((item) => `
-    <div class="version-item"><i class="version-node"></i><div class="version-copy"><strong>${item.version_id}</strong><span>${item.version_type.toUpperCase()} · ${item.reason || "成本更新"}</span></div><span class="version-cost">${money(item.total_cost)}</span></div>
-  `).join("");
-}
-
-$("#seed-button").addEventListener("click", seedDemo);
-$("#stage-select").addEventListener("change", (event) => { state.currentStage = event.target.value; renderStage(); renderEvolution(); });
-$("#quote-form").addEventListener("submit", generateQuote);
-$("#snapshot-button").addEventListener("click", createSnapshot);
-$("#field-data-form").addEventListener("submit", submitFieldData);
-$("#field-operation").addEventListener("change", (event) => { $("#field-cycle").value = Number(event.target.selectedOptions[0].dataset.cycle); previewFieldCost(); });
-$("#field-stage").addEventListener("change", previewFieldCost);
-document.querySelectorAll("#field-qty, #field-good-qty, #field-cycle").forEach((input) => input.addEventListener("input", () => {
-  window.clearTimeout(previewFieldCost.timer);
-  previewFieldCost.timer = window.setTimeout(previewFieldCost, 250);
-}));
-$("#template-button").addEventListener("click", downloadCsvTemplate);
-$("#csv-input").addEventListener("change", importCsv);
-document.querySelectorAll("#quote-form input").forEach((input) => input.addEventListener("input", calculatePreviewPrice));
-document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => {
-  document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active")); item.classList.add("active");
-}));
-
-checkHealth();
+initialize();

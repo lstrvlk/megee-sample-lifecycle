@@ -124,6 +124,30 @@ class ProductionPreviewRequest(APIModel):
     production: ProductionInput
 
 
+class BomWorksheetItem(APIModel):
+    assembly_id: str
+    assembly_name: str
+    assembly_type: str = "custom"
+    part_id: str
+    part_name: str
+    cost_type: str = Field(pattern="^(manufactured|standard|outsourced)$")
+    quantity: Decimal = Field(gt=0)
+    unit_price: Decimal = Field(ge=0)
+    supplier: str = ""
+    yield_rate: Decimal = Field(default=Decimal("1"), gt=0, le=1)
+    source_note: str = ""
+
+
+class BomWorksheetRequest(APIModel):
+    sku_id: str
+    sku_name: str
+    packaging_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    overhead_rate: Decimal = Field(default=Decimal("0"), ge=0, le=1)
+    items: List[BomWorksheetItem] = Field(min_length=1, max_length=2000)
+    updated_by: str = Field(default="成本核算员", min_length=1, max_length=100)
+    reason: str = Field(default="BOM成本参数确认", max_length=500)
+
+
 class ProductionSubmissionBatch(APIModel):
     sku_id: str
     submitted_by: str = Field(min_length=1, max_length=100)

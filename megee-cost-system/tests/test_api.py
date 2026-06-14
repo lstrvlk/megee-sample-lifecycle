@@ -211,7 +211,7 @@ def test_health(client):
 def test_dashboard_and_catalog_queries(client):
     dashboard = client.get("/")
     assert dashboard.status_code == 200
-    assert "制造成本驾驶舱" in dashboard.text
+    assert "产品成本核算" in dashboard.text
 
     assert client.post("/catalog/import", json=CATALOG).status_code == 200
     skus = client.get("/catalog/skus")
@@ -342,3 +342,53 @@ def test_cost_preview_explains_formula_without_persisting(client):
     assert pending.json()["items"] == []
     accepted = client.post("/production/input", json=payload["production"])
     assert accepted.status_code == 201
+
+
+def test_bom_worksheet_preview_apply_and_excel_report(client):
+    assert client.post("/catalog/import", json=CATALOG).status_code == 200
+    worksheet = client.get("/costing/skus/SKU-001/bom")
+    assert worksheet.status_code == 200, worksheet.text
+    body = worksheet.json()
+    assert len(body["items"]) == 3
+    assert Decimal(body["preview"]["bom_total"]) > 0
+
+    bottle = next(item for item in body["items"] if item["part_id"] == "PART-BOTTLE")
+    bottle["unit_price"] = "0.65"
+    body["updated_by"] = "测试成本员"
+    body["reason"] = "测试BOM核价"
+    body.pop("preview")
+    preview = client.post("/costing/bom/preview", json=body)
+    assert preview.status_code == 200, preview.text
+    assert Decimal(preview.json()["manufactured_cost"]) == Decimal("0.650000")
+
+    applied = client.post("/costing/bom/apply", json=body)
+    assert applied.status_code == 200, applied.text
+    assert applied.json()["version_id"].startswith("CV-BOM-")
+    assert applied.json()["sku_version"] == 2
+
+    without_outsourced = {**body, "items": [item for item in body["items"] if item["part_id"] != "PART-PLATED-CAP"]}
+    reapplied = client.post("/costing/bom/apply", json=without_outsourced)
+    assert reapplied.status_code == 200, reapplied.text
+    after_removal = client.get("/costing/skus/SKU-001/bom").json()
+    assert all(item["part_id"] != "PART-PLATED-CAP" for item in after_removal["items"])
+
+    template = client.get("/costing/bom/template/SKU-001")
+    assert template.status_code == 200
+    assert template.content[:2] == b"PK"
+    report = client.get("/costing/bom/report/SKU-001")
+    assert report.status_code == 200
+    assert report.content[:2] == b"PK"
+
+    imported = client.post(
+        "/costing/bom/import",
+        files={
+            "file": (
+                "SKU-001.xlsx",
+                template.content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert imported.status_code == 200, imported.text
+    assert imported.json()["sku_id"] == "SKU-001"
+    assert len(imported.json()["items"]) == 2

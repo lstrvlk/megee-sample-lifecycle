@@ -1,6 +1,6 @@
 # MEGEE Manufacturing Cost System V1.0
 
-制造结构、工艺数据和模具生命周期驱动的成本演化与报价 API。系统将 SKU 作为报价容器，成本实际在 Assembly、Part、Routing、Mold 和生产实绩层计算。
+制造结构、工艺数据和模具生命周期驱动的产品成本核算与报价系统。当前操作首页聚焦“逐款产品、逐步骤核算”，先把 Excel 中的真实 BOM 参数迁入系统，再继续核算工艺、模具、制造费用和规则报价。
 
 ![MEGEE dashboard](docs/dashboard-preview.png)
 
@@ -19,7 +19,8 @@
 - 新品、新客户、小批量、外协风险加成
 - 目标毛利率报价与报价记录持久化
 - SQLite 默认运行，`DATABASE_URL` 可切换到 SQLAlchemy 支持的数据库
-- 中文成本驾驶舱，一键载入瓶 + 泵 + 盖演示产品
+- 产品 BOM 核算工作台，支持逐行编辑、实时试算和确认采用
+- BOM Excel 模板、导入以及带公式和汇总的成本报告
 - Alembic 数据库迁移和 GitHub Actions 自动测试
 - 推送分支后自动构建 GHCR 容器镜像
 
@@ -33,7 +34,7 @@ pip install -e '.[dev]'
 uvicorn app.main:app --reload
 ```
 
-打开 `http://127.0.0.1:8000` 进入成本驾驶舱，点击“载入演示产品”即可体验完整流程。
+打开 `http://127.0.0.1:8000` 进入产品成本核算台。选择已有产品即可逐行核对 BOM，也可以下载 Excel 模板，将现有成本表整理后导入。
 
 API 文档位于 `http://127.0.0.1:8000/docs`。
 
@@ -64,6 +65,13 @@ postgresql+psycopg://user:password@db:5432/megee_cost
 | --- | --- | --- |
 | `POST` | `/catalog/import` | 原子导入或更新完整主数据 |
 | `GET` | `/catalog/skus` | 查询 SKU 主数据摘要 |
+| `GET` | `/costing/skus/{sku_id}/bom` | 读取产品 BOM 成本工作表 |
+| `POST` | `/costing/bom/preview` | 实时试算 BOM，不写入正式数据 |
+| `POST` | `/costing/bom/apply` | 确认 BOM 参数并生成成本版本 |
+| `POST` | `/costing/bom/import` | 导入 BOM Excel，进入待核对状态 |
+| `GET` | `/costing/bom/template` | 下载空白 BOM Excel 模板 |
+| `GET` | `/costing/bom/template/{sku_id}` | 下载已有产品 BOM 模板 |
+| `GET` | `/costing/bom/report/{sku_id}` | 导出 BOM 成本明细报告 |
 | `POST` | `/sku/calculate` | 展开 SKU 并返回组件/零件成本明细 |
 | `POST` | `/cost/compute` | 计算 Standard/Trial/Pilot/Mass/Adjusted 成本 |
 | `POST` | `/production/input` | 输入人工生产记录 |
@@ -81,6 +89,17 @@ postgresql+psycopg://user:password@db:5432/megee_cost
 | `GET` | `/quotations/{sku_id}` | 查询最近报价记录 |
 
 ## 关键计算口径
+
+BOM 第一步核算：
+
+```text
+自制物料成本 = 单件用量 × 材料未税单价
+外购/标准配件成本 = 单件用量 × 采购未税单价
+外协/装饰工艺成本 = 单件用量 × 外协未税单价 ÷ 外协良率
+BOM成本 = 各明细成本之和 + 包装成本
+```
+
+页面上的修改首先只进行试算。点击“确认 BOM 成本并生成版本”后，参数才更新到正式主数据并生成不可变成本快照。
 
 标准工艺成本：
 
