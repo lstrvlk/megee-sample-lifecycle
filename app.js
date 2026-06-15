@@ -24,9 +24,9 @@ const store = {
     {id:'IT-2026-0618',sample:'SP-2026-0039',action:'盘点调整',qty:-2,from:'B-04-01',to:'B-04-01',operator:'赵敏',time:'2026-06-11 14:08'}
   ],
   shipments: [
-    {id:'SH-2026-0056',request:'SR-2026-0085',customer:'蓝岸日化',carrier:'顺丰速运',tracking:'SF1438291023',receiver:'许安然',status:'待寄出',date:'--'},
-    {id:'SH-2026-0054',request:'SR-2026-0081',customer:'诺安生物',carrier:'顺丰速运',tracking:'SF1438287741',receiver:'梁睿',status:'已签收',date:'2026-06-11'},
-    {id:'SH-2026-0051',request:'SR-2026-0078',customer:'谷野科技',carrier:'京东物流',tracking:'JDVA00281743',receiver:'徐禾',status:'已寄出',date:'2026-06-10'}
+    {id:'SH-2026-0056',request:'SR-2026-0085',customer:'蓝岸日化',samples:'PCR 材质泡沫泵 × 4',carrier:'顺丰速运',tracking:'SF1438291023',waybillQr:'QR-SF-0056',receiver:'许安然 / 上海市浦东新区***',receiverMasked:'已扫码匹配，样品组不可见',salesperson:'林知夏',sampleOperator:'赵敏',status:'待业务确认',date:'--',approval:'待确认'},
+    {id:'SH-2026-0054',request:'SR-2026-0081',customer:'诺安生物',samples:'锁扣式粉底液泵 × 3',carrier:'顺丰速运',tracking:'SF1438287741',waybillQr:'QR-SF-0054',receiver:'梁睿 / 杭州市滨江区***',receiverMasked:'已扫码匹配，样品组不可见',salesperson:'李雯',sampleOperator:'赵敏',status:'已取件',date:'2026-06-11',approval:'业务已批准'},
+    {id:'SH-2026-0051',request:'SR-2026-0078',customer:'谷野科技',samples:'24/410 香水喷雾泵 × 8',carrier:'京东物流',tracking:'JDVA00281743',waybillQr:'QR-JD-0051',receiver:'徐禾 / 深圳市南山区***',receiverMasked:'已扫码匹配，样品组不可见',salesperson:'周明',sampleOperator:'赵敏',status:'后台已放行',date:'2026-06-10',approval:'业务已批准'}
   ],
   charges: [
     {id:'CH-2026-0028',request:'SR-2026-0088',customer:'沐光个护',type:'特殊电镀',defaultAmount:1600,actualAmount:1200,waiver:400,status:'待客户确认'},
@@ -45,6 +45,15 @@ try {
   const saved=JSON.parse(localStorage.getItem('megee-sample-lifecycle')||'null');
   if(saved) Object.keys(store).forEach(key=>{if(Array.isArray(saved[key])) store[key]=saved[key]});
 } catch (_) {}
+store.shipments=store.shipments.map((x,i)=>({
+  samples:x.samples||['PCR 材质泡沫泵 × 4','锁扣式粉底液泵 × 3','24/410 香水喷雾泵 × 8'][i]||'样品明细待补充',
+  waybillQr:x.waybillQr||`QR-${x.id}`,
+  receiverMasked:x.receiverMasked||'已扫码匹配，样品组不可见',
+  salesperson:x.salesperson||x.owner||['林知夏','李雯','周明'][i]||'业务员',
+  sampleOperator:x.sampleOperator||'赵敏',
+  approval:x.approval||((x.status||'').includes('签收')||(x.status||'').includes('寄出')?'业务已批准':'待确认'),
+  ...x,
+}));
 const persist=()=>localStorage.setItem('megee-sample-lifecycle',JSON.stringify(store));
 const nextId=(prefix,list)=>`${prefix}-2026-${String(list.length+1).padStart(4,'0')}`;
 
@@ -149,9 +158,11 @@ const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div
 function renderDashboardErp(){
   const requestRows=store.requests.map(r=>`<tr data-detail="${r.id}"><td>${pill(r.status)}</td><td class="link">${r.id}</td><td>${r.customer}</td><td>${r.purpose}</td><td>${r.items}</td><td>${r.owner}</td><td>${r.charge}</td><td>${r.date}</td></tr>`).join('');
   const ppsRows=store.pps.map(p=>`<tr data-detail="${p.id}"><td>${pill(p.status)}</td><td class="link">${p.id}</td><td>${p.customer}</td><td>${p.product}</td><td>${p.order}</td><td>${p.version}</td><td>${p.expiry}</td><td>${p.evidence}</td></tr>`).join('');
+  const shipmentRows=store.shipments.map(s=>`<tr data-detail="${s.id}"><td>${pill(s.status)}</td><td class="link">${s.id}</td><td>${s.request}</td><td>${s.samples}</td><td>${s.waybillQr}</td><td><span class="masked">${s.receiverMasked}</span></td><td>${s.salesperson}</td><td>${s.approval}</td></tr>`).join('');
   app.innerHTML=`${head('样品生命周期工作台','ERP 紧凑模式：以表格录入、批量处理和异常筛选为主。','<div class="erp-actions"><button class="secondary" data-bulk="request">批量索样</button><button class="secondary" data-bulk="sample">批量样品</button><button class="primary" data-new="request">新增索样</button></div>')}
-  ${compactSummary([{label:'待办',value:8,note:'2 项高风险'},{label:'低库存',value:4,note:'需补样'},{label:'待寄出',value:6,note:'今日处理'},{label:'PPS 到期',value:3,note:'90 天内'},{label:'本月寄样',value:48,note:'签收率 91.7%'},{label:'减免金额',value:'¥2,800',note:'本月'}])}
+  ${compactSummary([{label:'待办',value:8,note:'2 项高风险'},{label:'低库存',value:4,note:'需补样'},{label:'待业务确认',value:1,note:'寄样放行前'},{label:'PPS 到期',value:3,note:'90 天内'},{label:'本月寄样',value:48,note:'签收率 91.7%'},{label:'减免金额',value:'¥2,800',note:'本月'}])}
   ${panel('索样待处理清单','按状态、客户、样品清单集中处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','日期'],requestRows),erpSearch())}
+  ${panel('寄样确认队列','样品组贴单扫码后，仅业务员可核对收件人明文并批准放行',table(['状态','寄样单','申请单','样品清单','面单二维码','样品组收件信息权限','业务员','确认'],shipmentRows),erpSearch('按寄样单、申请单、业务员、面单码过滤'))}
   ${panel('PPS 与批准证据清单','重点关注即将到期、待客户批准和缺证据对象',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数'],ppsRows),erpSearch('按 PPS、客户、产品或订单过滤'))}
   ${panel('库存流水与异常','所有库存动作以流水方式保留，便于审计和追溯',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],store.inventory.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.sample}</td><td>${x.action}</td><td class="${x.qty>0?'positive':'negative'}">${x.qty>0?'+':''}${x.qty}</td><td>${x.from}</td><td>${x.to}</td><td>${x.operator}</td><td>${x.time}</td></tr>`).join('')),erpSearch('按样品编号、位置、单据过滤'))}`;
 }
@@ -166,6 +177,37 @@ function renderPPSErp(){
   app.innerHTML=head('PPS 中心','PPS 以批准包台账方式管理，便于按订单、客户、版本和有效期筛选。',erpActions('pps'))+compactSummary([{label:'PPS 总数',value:48},{label:'生效中',value:37},{label:'即将到期',value:3},{label:'待客户批准',value:1},{label:'已过期',value:2},{label:'证据缺失',value:1}])+panel('PPS 批准包台账','标准样、颜色限度板、缺陷板和批准证据统一进入表格台账',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],rows),erpSearch('按 PPS、客户、产品、订单、有效期过滤'));
 }
 
+function renderShipmentsErp(){
+  const rows=store.shipments.map(s=>`<tr data-detail="${s.id}"><td>${pill(s.status)}</td><td class="link">${s.id}</td><td>${s.request}</td><td>${s.customer}</td><td>${s.samples}</td><td>${s.sampleOperator}</td><td>${s.waybillQr}</td><td><span class="masked">${s.receiverMasked}</span></td><td>${s.salesperson}</td><td>${s.approval}</td><td>${s.carrier}</td><td>${s.tracking}</td></tr>`).join('');
+  app.innerHTML=head('寄样管理','按正常快递流程管理：备样、贴单扫码、业务员确认、后台放行、快递取件。',erpActions('shipment'))+
+  compactSummary([{label:'待备样',value:2},{label:'已贴单扫码',value:3},{label:'待业务确认',value:1},{label:'后台已放行',value:1},{label:'待快递取件',value:2},{label:'已取件',value:18}])+
+  `<section class="flow-strip"><span>1 按需求备样</span><span>2 样品组贴面单并扫码</span><span>3 系统匹配收件人信息</span><span>4 推送业务员确认</span><span>5 后台放行</span><span>6 安排快递取件</span></section>`+
+  panel('寄样流程台账','样品组只看到面单码和样品清单；收件人明文由业务员在确认环节核对。',table(['状态','寄样单号','索样申请','客户','样品清单','样品组','面单二维码','样品组收件信息权限','业务员','业务确认','快递','快递单号'],rows),erpSearch('按寄样单、申请单、面单二维码、业务员或状态过滤'));
+}
+
+function renderPermissionsErp(){
+  const roles=[
+    ['业务部','创建索样、查看自己客户、确认寄样收件信息、批准寄样、录入客户反馈','收件人明文、客户联系人、自己客户业务数据','不可直接改库存，不可查看全量费用审批'],
+    ['品管部','样品检验、PPS、颜色限度板、缺陷板、批准证据维护','质量记录、PPS 证据、检验结果','不可查看无关客户收件地址'],
+    ['打样组','处理开发样、上传打样结果、维护版本信息','开发要求、工艺结果、样品版本','不可审批费用减免'],
+    ['样品组','备样、贴快递面单、扫码录入、出入库、安排取件','样品清单、位置、面单二维码、快递状态','看不到收件人姓名/电话/地址明文'],
+    ['管理员','基础资料、角色分配、编号规则、费用规则、提醒配置','业务配置与用户权限','不能绕过审批直接修改历史流水'],
+    ['超级管理员','全部配置、紧急授权、系统审计、数据恢复','全量数据与审计日志','关键操作必须留痕']
+  ];
+  const roleRows=roles.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+  const flowRows=[
+    ['备样','样品组','按需求准备样品，核对样品清单','不可见收件人明文'],
+    ['贴单扫码','样品组','贴快递面单并扫码录入面单二维码','系统自动匹配收件人信息'],
+    ['信息推送','系统','向样品需求方业务员推送快递信息','推送含收件人明文，仅业务员可见'],
+    ['业务确认','业务部','检查样品列表和收件人信息并批准','批准后才允许取件'],
+    ['后台放行','后台系统','收到确认，更新寄样单状态','写入审计日志'],
+    ['快递取件','样品组','安排快递取件，更新取件结果','仍不展示收件人明文']
+  ].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+  app.innerHTML=head('用户与权限配置','按部门角色分配数据可见性、操作权限和审批责任。','<button class="primary" id="saveSettings">保存权限方案</button>')+
+  panel('角色权限矩阵','权限以角色 + 数据范围 + 字段级可见性组合控制',table(['角色','允许操作','可见数据','限制'],roleRows),erpSearch('按角色或权限搜索'))+
+  panel('寄样权限流程','重点控制收件人隐私：样品组扫码匹配但不可见明文，业务员确认后后台放行',table(['节点','责任角色','动作','权限/系统规则'],flowRows));
+}
+
 function openBulkPaste(type){
   const titleMap={sample:'批量导入样品',request:'批量导入索样',development:'批量导入开发样',inventory:'批量导入库存流水',shipment:'批量导入寄样单',charge:'批量导入收费单',pps:'批量导入 PPS'};
   document.querySelector('#modalTitle').textContent=titleMap[type]||'批量粘贴导入';
@@ -176,7 +218,9 @@ function openBulkPaste(type){
 
 renderers.dashboard=renderDashboardErp;
 renderers.requests=renderRequestsErp;
+renderers.shipments=renderShipmentsErp;
 renderers.pps=renderPPSErp;
+renderers.settings=renderPermissionsErp;
 
 function openDetail(id){
   const all=[...store.samples,...store.requests,...store.development,...store.inventory,...store.shipments,...store.charges,...store.pps];
