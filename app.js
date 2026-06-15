@@ -135,11 +135,48 @@ function navigate(page){currentPage=page;document.querySelectorAll('#nav button'
 function bindPage(){
   app.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>navigate(x.dataset.go));
   app.querySelectorAll('[data-new]').forEach(x=>x.onclick=()=>openModal(x.dataset.new));
+  app.querySelectorAll('[data-bulk]').forEach(x=>x.onclick=()=>openBulkPaste(x.dataset.bulk));
   app.querySelectorAll('[data-detail]').forEach(x=>x.onclick=()=>openDetail(x.dataset.detail));
   const filter=app.querySelector('[data-filter]');if(filter)filter.oninput=()=>app.querySelectorAll('tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(filter.value.toLowerCase()));
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
 }
+
+const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
+const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary">高级筛选</button></div>`;
+const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
+
+function renderDashboardErp(){
+  const requestRows=store.requests.map(r=>`<tr data-detail="${r.id}"><td>${pill(r.status)}</td><td class="link">${r.id}</td><td>${r.customer}</td><td>${r.purpose}</td><td>${r.items}</td><td>${r.owner}</td><td>${r.charge}</td><td>${r.date}</td></tr>`).join('');
+  const ppsRows=store.pps.map(p=>`<tr data-detail="${p.id}"><td>${pill(p.status)}</td><td class="link">${p.id}</td><td>${p.customer}</td><td>${p.product}</td><td>${p.order}</td><td>${p.version}</td><td>${p.expiry}</td><td>${p.evidence}</td></tr>`).join('');
+  app.innerHTML=`${head('样品生命周期工作台','ERP 紧凑模式：以表格录入、批量处理和异常筛选为主。','<div class="erp-actions"><button class="secondary" data-bulk="request">批量索样</button><button class="secondary" data-bulk="sample">批量样品</button><button class="primary" data-new="request">新增索样</button></div>')}
+  ${compactSummary([{label:'待办',value:8,note:'2 项高风险'},{label:'低库存',value:4,note:'需补样'},{label:'待寄出',value:6,note:'今日处理'},{label:'PPS 到期',value:3,note:'90 天内'},{label:'本月寄样',value:48,note:'签收率 91.7%'},{label:'减免金额',value:'¥2,800',note:'本月'}])}
+  ${panel('索样待处理清单','按状态、客户、样品清单集中处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','日期'],requestRows),erpSearch())}
+  ${panel('PPS 与批准证据清单','重点关注即将到期、待客户批准和缺证据对象',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数'],ppsRows),erpSearch('按 PPS、客户、产品或订单过滤'))}
+  ${panel('库存流水与异常','所有库存动作以流水方式保留，便于审计和追溯',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],store.inventory.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.sample}</td><td>${x.action}</td><td class="${x.qty>0?'positive':'negative'}">${x.qty>0?'+':''}${x.qty}</td><td>${x.from}</td><td>${x.to}</td><td>${x.operator}</td><td>${x.time}</td></tr>`).join('')),erpSearch('按样品编号、位置、单据过滤'))}`;
+}
+
+function renderRequestsErp(){
+  const rows=store.requests.map(r=>`<tr data-detail="${r.id}"><td>${pill(r.status)}</td><td class="link">${r.id}</td><td contenteditable="true">${r.customer}</td><td>${r.purpose}</td><td>${r.items}</td><td>${r.owner}</td><td>${r.charge}</td><td>${r.date}</td><td><button class="text-button">处理</button></td></tr>`).join('');
+  app.innerHTML=head('客户索样','表格化管理客户索样，后续支持从 Excel 批量复制粘贴。',erpActions('request'))+compactSummary([{label:'待审批',value:1},{label:'待备货',value:1},{label:'待寄出',value:1},{label:'已签收',value:1},{label:'需收费',value:1},{label:'已减免',value:1}])+panel('索样申请明细','单元格样式预览：客户、用途、数量、费用和状态均可作为列处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],rows),erpSearch('按客户、申请编号、样品或状态过滤'));
+}
+
+function renderPPSErp(){
+  const rows=store.pps.map(p=>`<tr data-detail="${p.id}"><td>${pill(p.status)}</td><td class="link">${p.id}</td><td>${p.customer}</td><td>${p.product}</td><td>${p.order}</td><td>${p.version}</td><td>${p.expiry}</td><td>${p.evidence}</td><td>标准样 / 颜色板 / 缺陷板</td><td><button class="text-button">查看</button></td></tr>`).join('');
+  app.innerHTML=head('PPS 中心','PPS 以批准包台账方式管理，便于按订单、客户、版本和有效期筛选。',erpActions('pps'))+compactSummary([{label:'PPS 总数',value:48},{label:'生效中',value:37},{label:'即将到期',value:3},{label:'待客户批准',value:1},{label:'已过期',value:2},{label:'证据缺失',value:1}])+panel('PPS 批准包台账','标准样、颜色限度板、缺陷板和批准证据统一进入表格台账',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],rows),erpSearch('按 PPS、客户、产品、订单、有效期过滤'));
+}
+
+function openBulkPaste(type){
+  const titleMap={sample:'批量导入样品',request:'批量导入索样',development:'批量导入开发样',inventory:'批量导入库存流水',shipment:'批量导入寄样单',charge:'批量导入收费单',pps:'批量导入 PPS'};
+  document.querySelector('#modalTitle').textContent=titleMap[type]||'批量粘贴导入';
+  document.querySelector('#formFields').innerHTML=`<div class="bulk-help"><strong>从 Excel 复制后直接粘贴</strong><span>第一行建议保留表头；系统后续会按列名自动识别字段。</span></div><textarea name="bulkPaste" class="bulk-paste" placeholder="示例：&#10;客户\t用途\t样品清单\t数量\t是否收费&#10;沐光个护\t项目开发\t哑光银乳液泵\t12\t需要收费"></textarea><div class="bulk-preview"><span>下一步功能讨论：列映射、错误校验、重复编号处理、批量保存前预览。</span></div>`;
+  document.querySelector('#businessForm').dataset.type='bulk';
+  document.querySelector('#modalWrap').classList.add('show');
+}
+
+renderers.dashboard=renderDashboardErp;
+renderers.requests=renderRequestsErp;
+renderers.pps=renderPPSErp;
 
 function openDetail(id){
   const all=[...store.samples,...store.requests,...store.development,...store.inventory,...store.shipments,...store.charges,...store.pps];
