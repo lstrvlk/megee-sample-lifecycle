@@ -449,7 +449,7 @@ function openModal(type){
 function closeDrawer(){document.querySelector('#overlay').classList.remove('show');document.querySelector('#drawer').classList.remove('show')}
 function closeModal(){document.querySelector('#modalWrap').classList.remove('show')}
 function showToast(text){const t=document.querySelector('#toast');document.querySelector('#toastText').textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),2500)}
-const ACCESS_PASSWORD='MEGEE2026';
+const ACCESS_PASSWORD='53432885';
 function initAuthGate(){
   const gate=document.querySelector('#authGate');
   const form=document.querySelector('#authForm');
