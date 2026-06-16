@@ -443,6 +443,24 @@ function openModal(type){
 function closeDrawer(){document.querySelector('#overlay').classList.remove('show');document.querySelector('#drawer').classList.remove('show')}
 function closeModal(){document.querySelector('#modalWrap').classList.remove('show')}
 function showToast(text){const t=document.querySelector('#toast');document.querySelector('#toastText').textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),2500)}
+function setSidebarCollapsed(collapsed,save=true){
+  document.body.classList.toggle('sidebar-collapsed',collapsed);
+  const toggle=document.querySelector('#sidebarToggle');
+  if(toggle){
+    toggle.textContent=collapsed?'›':'‹';
+    toggle.setAttribute('aria-label',collapsed?'展开侧边栏':'收起侧边栏');
+    toggle.title=collapsed?'展开侧边栏':'收起侧边栏';
+  }
+  if(save) localStorage.setItem('megee-sidebar-collapsed',collapsed?'1':'0');
+}
+function initSidebar(){
+  document.querySelectorAll('#nav button').forEach(x=>{x.title=x.textContent.trim()});
+  const saved=localStorage.getItem('megee-sidebar-collapsed');
+  const collapsed=saved===null?window.matchMedia('(max-width: 1280px)').matches:saved==='1';
+  setSidebarCollapsed(collapsed,false);
+  const toggle=document.querySelector('#sidebarToggle');
+  if(toggle) toggle.onclick=()=>setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+}
 
 document.querySelectorAll('#nav button').forEach(x=>x.onclick=()=>navigate(x.dataset.page));
 document.querySelectorAll('[data-close]').forEach(x=>x.onclick=closeDrawer);document.querySelector('#overlay').onclick=closeDrawer;
@@ -462,4 +480,5 @@ document.querySelector('#businessForm').onsubmit=e=>{
 };
 document.querySelector('#globalSearch').onclick=()=>navigate('trace');
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal()}});
+initSidebar();
 navigate('dashboard');
