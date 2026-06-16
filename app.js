@@ -454,7 +454,11 @@ function setSidebarCollapsed(collapsed,save=true){
   if(save) localStorage.setItem('megee-sidebar-collapsed',collapsed?'1':'0');
 }
 function initSidebar(){
-  document.querySelectorAll('#nav button').forEach(x=>{x.title=x.textContent.trim()});
+  document.querySelectorAll('#nav button').forEach(x=>{
+    const label=[...x.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent.trim()).join('').trim();
+    x.dataset.label=label||x.textContent.trim();
+    x.title=label||x.textContent.trim();
+  });
   const saved=localStorage.getItem('megee-sidebar-collapsed');
   const collapsed=saved===null?window.matchMedia('(max-width: 1280px)').matches:saved==='1';
   setSidebarCollapsed(collapsed,false);
