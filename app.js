@@ -250,17 +250,24 @@ const nextId=(prefix,list)=>`${prefix}-2026-${String(list.length+1).padStart(4,'
 const app=document.querySelector('#app');
 const pageTitles={dashboard:'业务总览',tasks:'我的待办',samples:'样品仓库',requests:'客户索样',development:'定制样品',inventory:'库存管理',shipments:'寄样管理',charges:'收费管理',pps:'PPS 中心',trace:'追溯中心',settings:'基础配置'};
 let currentPage='dashboard';
+let pendingFilter=null;
+let columnViews={};
+try{columnViews=JSON.parse(localStorage.getItem('megee-column-views')||'{}')||{}}catch(_){columnViews={}};
 
 const pill=(value)=>`<span class="pill ${value.includes('过期')||value.includes('异常')||value.includes('补样')?'danger':value.includes('待')||value.includes('即将')?'warning':value.includes('生效')||value.includes('签收')||value.includes('收费')||value==='可用'?'success':'info'}"><i></i>${value}</span>`;
 const money=(value)=>`¥ ${Number(value).toLocaleString('zh-CN')}`;
 const head=(title,desc,button='')=>`<section class="page-head"><div><p class="eyebrow">MEGEE SAMPLE LIFECYCLE</p><h1>${title}</h1><p>${desc}</p></div>${button}</section>`;
-const cards=(items)=>`<section class="metrics">${items.map(x=>`<article><div class="metric-top"><span class="metric-icon ${x.color}">${x.icon}</span><small>${x.note||'实时数据'}</small></div><p>${x.label}</p><strong>${x.value}</strong><em>${x.unit||''}</em></article>`).join('')}</section>`;
+const metricAttrs=x=>x.page?` data-metric-page="${x.page}" data-metric-value="${x.filter||''}" data-metric-label="${x.label||''}"`:'';
+const cards=(items)=>`<section class="metrics">${items.map(x=>`<article${metricAttrs(x)}><div class="metric-top"><span class="metric-icon ${x.color}">${x.icon}</span><small>${x.note||'实时数据'}</small></div><p>${x.label}</p><strong>${x.value}</strong><em>${x.unit||''}</em></article>`).join('')}</section>`;
 const table=(columns,rows,empty='暂无数据')=>`<div class="table-wrap" data-paged="true"><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${columns.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`;
-const panel=(title,desc,body,tools='')=>`<section class="panel"><div class="panel-head"><div><h2>${title}</h2><p>${desc}</p></div>${tools}</div>${body}</section>`;
+const panel=(title,desc,body,tools='')=>{
+  const isFilter=String(tools).includes('erp-filter');
+  return `<section class="panel"><div class="panel-head"><div><h2>${title}</h2><p>${desc}</p></div>${isFilter?'':tools}</div>${isFilter?`<div class="panel-filter">${tools}</div>`:''}${body}</section>`;
+};
 
 function renderDashboard(){
   app.innerHTML=`${head('早上好，林知夏','今天有 8 项待办，其中 2 个 PPS 需要优先处理。','<button class="primary" data-new="request">＋ 新建索样申请</button>')}
-  ${cards([{icon:'✓',color:'blue',label:'今日待办',value:8,unit:'项',note:'2 项即将超期'},{icon:'□',color:'green',label:'可用样品',value:156,unit:'款',note:'4 款低于安全库存'},{icon:'➜',color:'violet',label:'本月寄样',value:48,unit:'单',note:'签收率 91.7%'},{icon:'◎',color:'amber',label:'有效 PPS',value:37,unit:'份',note:'3 份即将到期'}])}
+  ${cards([{icon:'✓',color:'blue',label:'今日待办',value:8,unit:'项',note:'2 项即将超期',page:'tasks',filter:'高'},{icon:'□',color:'green',label:'可用样品',value:156,unit:'款',note:'4 款低于安全库存',page:'samples',filter:'可用'},{icon:'➜',color:'violet',label:'本月寄样',value:48,unit:'单',note:'签收率 91.7%',page:'shipments',filter:'已签收'},{icon:'◎',color:'amber',label:'有效 PPS',value:37,unit:'份',note:'3 份即将到期',page:'pps',filter:'即将到期'}])}
   <section class="dashboard-grid">
     ${panel('业务待办','按风险和截止时间排序',`<div class="task-list">
       <button data-go="pps"><span class="task-icon red">!</span><div><strong>PPS-MUGUANG-2026-0009 即将到期</strong><small>剩余 23 天，需要发起续签</small></div><b>高风险</b></button>
@@ -278,7 +285,7 @@ function renderDashboard(){
 function renderTasks(){
   const rows=[
     ['PPS-MUGUANG-2026-0009','PPS 续签','沐光个护','2026-06-13','高','即将到期'],['SY-2026-0029','样品检验','沐光个护','今天 16:00','高','待检验'],['SR-2026-0089','索样审批','海澜美妆','今天 17:00','普通','待审批'],['CH-2026-0028','费用确认','沐光个护','2026-06-14','普通','待客户确认'],['SH-2026-0056','寄样出库','蓝岸日化','2026-06-14','普通','待寄出']];
-  app.innerHTML=head('我的待办','集中处理审批、检验、出库、寄样和有效期事项')+cards([{icon:'✓',color:'blue',label:'全部待办',value:8,unit:'项'},{icon:'!',color:'amber',label:'高风险',value:2,unit:'项'},{icon:'审',color:'violet',label:'待我审批',value:3,unit:'项'},{icon:'✓',color:'green',label:'本周完成',value:21,unit:'项'}])+panel('待处理事项','点击任务查看完整上下文',table(['业务编号','任务类型','客户','截止时间','优先级','状态','操作'],rows.map(r=>`<tr data-detail="${r[0]}"><td class="link">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="priority ${r[4]==='高'?'high':''}">${r[4]}</span></td><td>${pill(r[5])}</td><td><button class="text-button">处理</button></td></tr>`).join('')),erpSearch('按业务编号、任务类型、客户或状态过滤','tasks'));
+  app.innerHTML=head('我的待办','集中处理审批、检验、出库、寄样和有效期事项')+cards([{icon:'✓',color:'blue',label:'全部待办',value:8,unit:'项',page:'tasks'},{icon:'!',color:'amber',label:'高风险',value:2,unit:'项',page:'tasks',filter:'高'},{icon:'审',color:'violet',label:'待我审批',value:3,unit:'项',page:'tasks',filter:'待审批'},{icon:'✓',color:'green',label:'本周完成',value:21,unit:'项',page:'tasks'}])+panel('待处理事项','点击任务查看完整上下文',table(['业务编号','任务类型','客户','截止时间','优先级','状态','操作'],rows.map(r=>`<tr data-detail="${r[0]}"><td class="link">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="priority ${r[4]==='高'?'high':''}">${r[4]}</span></td><td>${pill(r[5])}</td><td><button class="text-button">处理</button></td></tr>`).join('')),erpSearch('按业务编号、任务类型、客户或状态过滤','tasks'));
 }
 
 function renderSamples(){
@@ -322,13 +329,13 @@ function renderDevelopment(){
   const chargeable=store.development.filter(x=>(x.costMode||'').includes('收费')||(x.costMode||'').includes('报价')).length;
   app.innerHTML=head('定制样品管理','围绕样品发起动因建立台账：市场推广、技术验证、客户项目、质量改善、新模首样，并管理产品系列、产品信息、工艺、检验、费用和转标准样。',erpActions('development'))+
   requestTypeGuide()+
-  compactSummary([{label:'定制任务',value:store.development.length,note:'当前台账'},{label:'客户驱动',value:store.development.filter(x=>x.requestType==='客户驱动').length,note:'客户信息受控'},{label:'新模首样',value:newMold,note:'首样确认'},{label:'待检验',value:waitQa,note:'品管确认'},{label:'需报价/收费',value:chargeable,note:'费用判断'},{label:'待转标准样',value:store.development.filter(x=>(x.convertPlan||'').includes('转')).length,note:'确认后'}])+
+  compactSummary([{label:'定制任务',value:store.development.length,note:'当前台账',page:'development'},{label:'客户驱动',value:store.development.filter(x=>x.requestType==='客户驱动').length,note:'客户信息受控',page:'development',filter:'客户驱动'},{label:'新模首样',value:newMold,note:'首样确认',page:'development',filter:'新模首样'},{label:'待检验',value:waitQa,note:'品管确认',page:'development',filter:'待检验'},{label:'需报价/收费',value:chargeable,note:'费用判断',page:'development',filter:'需报价'},{label:'待转标准样',value:store.development.filter(x=>(x.convertPlan||'').includes('转')).length,note:'确认后',page:'development',filter:'转'}])+
   panel('定制样品台账','客户驱动需求除业务部外仅显示客户编码；其它部门重点查看产品、工艺、检验与交付信息。',table(['状态','任务编号','需求类型','客户编码','客户名称权限','产品系列','产品 / 编码','产品状态','产品信息','材料','颜色','工艺信息','烫印工艺','定制要求','数量','检验项目','品管结果','费用方式','转标准样/PPS','版本','优先级','责任人','计划完成'],rows),erpSearch('按需求类型、客户编码、产品系列、产品、工艺、检验结果或交期过滤'));
 }
 
 function renderInventory(){
   const rows=store.inventory.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.sample}</td><td><span class="action ${x.qty>0?'in':'out'}">${x.action}</span></td><td class="${x.qty>0?'positive':'negative'}">${x.qty>0?'+':''}${x.qty}</td><td>${x.from}</td><td>${x.to}</td><td>${x.operator}</td><td>${x.time}</td></tr>`).join('');
-  app.innerHTML=head('库存管理','所有库存动作生成不可删除的流水','<div><button class="secondary" data-new="inventory">盘点</button> <button class="primary" data-new="inventory">＋ 库存操作</button></div>')+cards([{icon:'▤',color:'blue',label:'库存总量',value:'2,846',unit:'件'},{icon:'□',color:'green',label:'今日入库',value:38,unit:'件'},{icon:'➜',color:'violet',label:'今日出库',value:26,unit:'件'},{icon:'!',color:'amber',label:'库存预警',value:4,unit:'款'}])+panel('库存流水','入库、出库、预留、借还、调拨、盘点和报废',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],rows),erpSearch('按流水号、样品编号、动作、库位或单据过滤','inventory'));
+  app.innerHTML=head('库存管理','所有库存动作生成不可删除的流水','<div><button class="secondary" data-new="inventory">盘点</button> <button class="primary" data-new="inventory">＋ 库存操作</button></div>')+cards([{icon:'▤',color:'blue',label:'库存总量',value:'2,846',unit:'件',page:'inventory'},{icon:'□',color:'green',label:'今日入库',value:38,unit:'件',page:'inventory',filter:'入库'},{icon:'➜',color:'violet',label:'今日出库',value:26,unit:'件',page:'inventory',filter:'出库'},{icon:'!',color:'amber',label:'库存预警',value:4,unit:'款',page:'samples',filter:'待补样'}])+panel('库存流水','入库、出库、预留、借还、调拨、盘点和报废',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],rows),erpSearch('按流水号、样品编号、动作、库位或单据过滤','inventory'));
 }
 
 function renderShipments(){
@@ -338,7 +345,7 @@ function renderShipments(){
 
 function renderCharges(){
   const rows=store.charges.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.request}</td><td>${x.customer}</td><td>${x.type}</td><td>${money(x.defaultAmount)}</td><td>${money(x.waiver)}</td><td><strong>${money(x.actualAmount)}</strong></td><td>${pill(x.status)}</td><td><button class="text-button">记录</button></td></tr>`).join('');
-  app.innerHTML=head('收费管理','生产样品默认收费，金额和减免规则均可配置','<button class="primary" data-new="charge">＋ 新建收费单</button>')+cards([{icon:'¥',color:'blue',label:'本月应收',value:'¥ 28,600'},{icon:'✓',color:'green',label:'已确认',value:'¥ 19,400'},{icon:'审',color:'amber',label:'待审批减免',value:3,unit:'笔'},{icon:'↓',color:'violet',label:'本月减免',value:'¥ 2,800'}])+panel('收费与减免','保留默认金额、实际金额、减免原因和审批记录',table(['收费单号','索样申请','客户','收费类型','默认金额','减免','实际金额','状态',''],rows),erpSearch('按收费单、索样申请、客户、收费类型或状态过滤','charges'));
+  app.innerHTML=head('收费管理','生产样品默认收费，金额和减免规则均可配置','<button class="primary" data-new="charge">＋ 新建收费单</button>')+cards([{icon:'¥',color:'blue',label:'本月应收',value:'¥ 28,600',page:'charges'},{icon:'✓',color:'green',label:'已确认',value:'¥ 19,400',page:'charges',filter:'已收费'},{icon:'审',color:'amber',label:'待审批减免',value:3,unit:'笔',page:'charges',filter:'待客户确认'},{icon:'↓',color:'violet',label:'本月减免',value:'¥ 2,800',page:'charges',filter:'已减免'}])+panel('收费与减免','保留默认金额、实际金额、减免原因和审批记录',table(['收费单号','索样申请','客户','收费类型','默认金额','减免','实际金额','状态',''],rows),erpSearch('按收费单、索样申请、客户、收费类型或状态过滤','charges'));
 }
 
 function renderPPS(){
@@ -362,6 +369,10 @@ const renderers={dashboard:renderDashboard,tasks:renderTasks,samples:renderSampl
 function navigate(page){currentPage=page;document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.querySelector('#crumbTitle').textContent=pageTitles[page];renderers[page]();bindPage();window.scrollTo(0,0)}
 
 function bindPage(){
+  app.querySelectorAll('[data-metric-page]').forEach(card=>card.onclick=()=>{
+    pendingFilter={value:card.dataset.metricValue||'',label:card.dataset.metricLabel||''};
+    navigate(card.dataset.metricPage);
+  });
   app.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>navigate(x.dataset.go));
   app.querySelectorAll('[data-new]').forEach(x=>x.onclick=()=>openModal(x.dataset.new));
   app.querySelectorAll('[data-bulk]').forEach(x=>x.onclick=()=>openBulkPaste(x.dataset.bulk));
@@ -386,8 +397,24 @@ function bindPage(){
     filter.querySelector('[data-filter]')?.focus();
   });
   initPagedTables(app);
+  applyPendingFilter();
+  applyColumnView(currentPage);
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
+}
+
+function applyPendingFilter(){
+  if(!pendingFilter) return;
+  const filter=app.querySelector('.panel .erp-filter');
+  if(filter){
+    const value=pendingFilter.value||'';
+    const select=[...filter.querySelectorAll('[data-filter-select] option')].find(option=>option.value===value||option.textContent===value);
+    if(select) select.parentElement.value=select.value||select.textContent;
+    else if(value) filter.querySelector('[data-filter]').value=value;
+    applyErpFilters(filter,true);
+    showToast(value?`已进入${pendingFilter.label||'指标'}明细：${value}`:`已进入${pendingFilter.label||'指标'}明细`);
+  }
+  pendingFilter=null;
 }
 
 function applyErpFilters(filter,notify=false){
@@ -469,6 +496,21 @@ function updatePagedTable(wrap){
   }
 }
 
+function cleanHeader(text){return String(text||'').replace(/\s*▾\s*$/,'').trim()}
+function pageFields(){
+  return [...new Set([...app.querySelectorAll('.panel table thead th')].map(th=>cleanHeader(th.textContent)).filter(Boolean))];
+}
+function applyColumnView(scope=currentPage){
+  const selected=columnViews[scope];
+  app.querySelectorAll('.panel table').forEach(table=>{
+    const headers=[...table.querySelectorAll('thead th')].map(th=>cleanHeader(th.textContent));
+    headers.forEach((field,index)=>{
+      const show=!selected||selected.includes(field);
+      table.querySelectorAll(`tr>*:nth-child(${index+1})`).forEach(cell=>cell.style.display=show?'':'none');
+    });
+  });
+}
+
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
 const filterPresets={
   samples:[['状态',['可用','预留','待补样']],['类别',['常规库存样','新品发布样','客户定制样','PPS 留样','颜色限度样']],['样品类型',['标准样品','客户定制样','颜色限度样','PPS 标准样']]],
@@ -486,7 +528,7 @@ const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤',
   const selects=(filterPresets[page]||[]).map(([label,items])=>`<label>${label}<select data-filter-select><option value="">全部</option>${items.map(x=>`<option>${x}</option>`).join('')}</select></label>`).join('');
   return `<div class="erp-filter"><label class="filter-keyword">关键词<input data-filter placeholder="${placeholder}"></label>${selects}<label>开始日期<input data-filter-from type="date"></label><label>结束日期<input data-filter-to type="date"></label><button type="button" class="secondary" data-filter-run>查询</button><button type="button" class="secondary" data-filter-clear>重置</button><small data-filter-count></small><button type="button" class="secondary" data-view="${page}">字段</button><button type="button" class="secondary" data-save-view>保存格式</button><button type="button" class="secondary" data-share-view>分享</button></div>`;
 };
-const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
+const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div${metricAttrs(x)}><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
 const requestTypeGuide=()=>`<section class="type-guide"><strong>需求类型说明</strong><span>需求类型用于标识样品发起动因：市场推广、技术验证、客户项目、质量改善或新模首样。</span><button class="secondary" data-type-guide>查看定义</button></section>`;
 
 function renderDashboardErp(){
@@ -494,7 +536,7 @@ function renderDashboardErp(){
   const ppsRows=store.pps.map(p=>`<tr data-detail="${p.id}"><td>${pill(p.status)}</td><td class="link">${p.id}</td><td>${p.customer}</td><td>${p.product}</td><td>${p.order}</td><td>${p.version}</td><td>${p.expiry}</td><td>${p.evidence}</td></tr>`).join('');
   const shipmentRows=store.shipments.map(s=>`<tr data-detail="${s.id}"><td>${pill(s.status)}</td><td class="link">${s.id}</td><td>${s.request}</td><td>${s.samples}</td><td>${s.waybillQr}</td><td><span class="masked">${s.receiverMasked}</span></td><td>${s.salesperson}</td><td>${s.approval}</td></tr>`).join('');
   app.innerHTML=`${head('样品生命周期工作台','ERP 紧凑模式：以表格录入、批量处理和异常筛选为主。','<div class="erp-actions"><button class="secondary" data-bulk="request">批量索样</button><button class="secondary" data-bulk="sample">批量样品</button><button class="primary" data-new="request">新增索样</button></div>')}
-  ${compactSummary([{label:'待办',value:8,note:'2 项高风险'},{label:'低库存',value:4,note:'需补样'},{label:'待业务确认',value:1,note:'寄样放行前'},{label:'PPS 到期',value:3,note:'90 天内'},{label:'本月寄样',value:48,note:'签收率 91.7%'},{label:'减免金额',value:'¥2,800',note:'本月'}])}
+  ${compactSummary([{label:'待办',value:8,note:'2 项高风险',page:'tasks',filter:'高'},{label:'低库存',value:4,note:'需补样',page:'samples',filter:'待补样'},{label:'待业务确认',value:1,note:'寄样放行前',page:'shipments',filter:'待业务确认'},{label:'PPS 到期',value:3,note:'90 天内',page:'pps',filter:'即将到期'},{label:'本月寄样',value:48,note:'签收率 91.7%',page:'shipments',filter:'已签收'},{label:'减免金额',value:'¥2,800',note:'本月',page:'charges',filter:'已减免'}])}
   ${panel('索样待处理清单','按状态、客户、样品清单集中处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','日期'],requestRows),erpSearch())}
   ${panel('寄样确认队列','样品组贴单扫码后，仅业务员可核对收件人明文并批准放行',table(['状态','寄样单','申请单','样品清单','面单二维码','样品组收件信息权限','业务员','确认'],shipmentRows),erpSearch('按寄样单、申请单、业务员、面单码过滤'))}
   ${panel('PPS 与批准证据清单','重点关注即将到期、待客户批准和缺证据对象',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数'],ppsRows),erpSearch('按 PPS、客户、产品或订单过滤'))}
@@ -503,18 +545,18 @@ function renderDashboardErp(){
 
 function renderRequestsErp(){
   const rows=store.requests.map(r=>`<tr data-detail="${r.id}"><td>${pill(r.status)}</td><td class="link">${r.id}</td><td contenteditable="true">${r.customer}</td><td>${r.purpose}</td><td>${r.items}</td><td>${r.owner}</td><td>${r.charge}</td><td>${r.date}</td><td><button class="text-button">处理</button></td></tr>`).join('');
-  app.innerHTML=head('客户索样','表格化管理客户索样，后续支持从 Excel 批量复制粘贴。',erpActions('request'))+compactSummary([{label:'待审批',value:1},{label:'待备货',value:1},{label:'待寄出',value:1},{label:'已签收',value:1},{label:'需收费',value:1},{label:'已减免',value:1}])+panel('索样申请明细','单元格样式预览：客户、用途、数量、费用和状态均可作为列处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],rows),erpSearch('按客户、申请编号、样品或状态过滤'));
+  app.innerHTML=head('客户索样','表格化管理客户索样，后续支持从 Excel 批量复制粘贴。',erpActions('request'))+compactSummary([{label:'待审批',value:1,page:'requests',filter:'待审批'},{label:'待备货',value:1,page:'requests',filter:'待备货'},{label:'待寄出',value:1,page:'requests',filter:'待寄出'},{label:'已签收',value:1,page:'requests',filter:'已签收'},{label:'需收费',value:1,page:'requests',filter:'待报价'},{label:'已减免',value:1,page:'requests',filter:'已减免'}])+panel('索样申请明细','单元格样式预览：客户、用途、数量、费用和状态均可作为列处理',table(['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],rows),erpSearch('按客户、申请编号、样品或状态过滤'));
 }
 
 function renderPPSErp(){
   const rows=store.pps.map(p=>`<tr data-detail="${p.id}"><td>${pill(p.status)}</td><td class="link">${p.id}</td><td>${p.customer}</td><td>${p.product}</td><td>${p.order}</td><td>${p.version}</td><td>${p.expiry}</td><td>${p.evidence}</td><td>标准样 / 颜色板 / 缺陷板</td><td><button class="text-button">查看</button></td></tr>`).join('');
-  app.innerHTML=head('PPS 中心','PPS 以批准包台账方式管理，便于按订单、客户、版本和有效期筛选。',erpActions('pps'))+compactSummary([{label:'PPS 总数',value:48},{label:'生效中',value:37},{label:'即将到期',value:3},{label:'待客户批准',value:1},{label:'已过期',value:2},{label:'证据缺失',value:1}])+panel('PPS 批准包台账','标准样、颜色限度板、缺陷板和批准证据统一进入表格台账',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],rows),erpSearch('按 PPS、客户、产品、订单、有效期过滤'));
+  app.innerHTML=head('PPS 中心','PPS 以批准包台账方式管理，便于按订单、客户、版本和有效期筛选。',erpActions('pps'))+compactSummary([{label:'PPS 总数',value:48,page:'pps'},{label:'生效中',value:37,page:'pps',filter:'生效中'},{label:'即将到期',value:3,page:'pps',filter:'即将到期'},{label:'待客户批准',value:1,page:'pps',filter:'待客户批准'},{label:'已过期',value:2,page:'pps',filter:'已过期'},{label:'证据缺失',value:1,page:'pps',filter:'证据'}])+panel('PPS 批准包台账','标准样、颜色限度板、缺陷板和批准证据统一进入表格台账',table(['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],rows),erpSearch('按 PPS、客户、产品、订单、有效期过滤'));
 }
 
 function renderShipmentsErp(){
   const rows=store.shipments.map(s=>`<tr data-detail="${s.id}"><td>${pill(s.status)}</td><td class="link">${s.id}</td><td>${s.request}</td><td>${s.customer}</td><td>${s.samples}</td><td>${s.sampleOperator}</td><td>${s.waybillQr}</td><td><span class="masked">${s.receiverMasked}</span></td><td>${s.salesperson}</td><td>${s.approval}</td><td>${s.carrier}</td><td>${s.tracking}</td></tr>`).join('');
   app.innerHTML=head('寄样管理','按正常快递流程管理：备样、贴单扫码、业务员确认、后台放行、快递取件。',erpActions('shipment'))+
-  compactSummary([{label:'待备样',value:2},{label:'已贴单扫码',value:3},{label:'待业务确认',value:1},{label:'后台已放行',value:1},{label:'待快递取件',value:2},{label:'已取件',value:18}])+
+  compactSummary([{label:'待备样',value:2,page:'shipments',filter:'待备样'},{label:'已贴单扫码',value:3,page:'shipments',filter:'QR-'},{label:'待业务确认',value:1,page:'shipments',filter:'待业务确认'},{label:'后台已放行',value:1,page:'shipments',filter:'后台已放行'},{label:'待快递取件',value:2,page:'shipments',filter:'待快递取件'},{label:'已取件',value:18,page:'shipments',filter:'已取件'}])+
   `<section class="flow-strip"><span>1 按需求备样</span><span>2 样品组贴面单并扫码</span><span>3 系统匹配收件人信息</span><span>4 推送业务员确认</span><span>5 后台放行</span><span>6 安排快递取件</span></section>`+
   panel('寄样流程台账','样品组只看到面单码和样品清单；收件人明文由业务员在确认环节核对。',table(['状态','寄样单号','索样申请','客户','样品清单','样品组','面单二维码','样品组收件信息权限','业务员','业务确认','快递','快递单号'],rows),erpSearch('按寄样单、申请单、面单二维码、业务员或状态过滤'));
 }
@@ -591,12 +633,12 @@ function renderSamplesWarehouse(){
   }).join('');
   app.innerHTML=head('样品仓库','以 ERP 紧凑台账管理标准样品库存、产品信息、类别、库位与出入库流水，并按先进先出原则发料。',erpActions('sample'))+
   compactSummary([
-    {label:'库存样品',value:store.samples.length,note:'当前台账'},
-    {label:'库存总量',value:totalStock,note:'件'},
-    {label:'标准样品',value:standardSamples,note:'含 PPS 标准样'},
-    {label:'低于安全库存',value:lowStock,note:'需补样'},
-    {label:'最早批次',value:fifoQueue[0]?.batch||'--',note:'FIFO 优先'},
-    {label:'出入库流水',value:store.inventory.length,note:'不可删除'}
+    {label:'库存样品',value:store.samples.length,note:'当前台账',page:'samples'},
+    {label:'库存总量',value:totalStock,note:'件',page:'samples'},
+    {label:'标准样品',value:standardSamples,note:'含 PPS 标准样',page:'samples',filter:'标准样品'},
+    {label:'低于安全库存',value:lowStock,note:'需补样',page:'samples',filter:'待补样'},
+    {label:'最早批次',value:fifoQueue[0]?.batch||'--',note:'FIFO 优先',page:'samples',filter:fifoQueue[0]?.batch||''},
+    {label:'出入库流水',value:store.inventory.length,note:'不可删除',page:'inventory'}
   ])+
   panel('样品库存情况','按入库日期排序，默认遵循先进先出；库存低于安全库存时突出显示。',table(['状态','样品编号','产品编码','样品名称 / 产品信息','样品类别','样品类型','客户','版本','库存批次','入库日期','库龄','当前库存','安全库存','库位','FIFO 建议','责任人'],stockRows),erpSearch('按样品编号、产品编码、名称、类别、库位或批次过滤'))+
   panel('出入库明细列表','所有入库、出库、预留、盘点和调拨动作保留流水，并自动带出样品库存上下文。',table(['时间','流水号','动作','样品编号','样品 / 产品编码','样品类别','批次','数量','来源位置','目标/单据','当前库位','先进先出建议','操作人'],movementRows),erpSearch('按流水号、样品编号、批次、库位、单据或操作人过滤'));
@@ -611,20 +653,24 @@ function openBulkPaste(type){
 }
 
 function openViewSettings(scope){
-  const presets={
-    dashboard:['状态','业务编号','客户','样品清单','负责人','日期','操作'],
-    samples:['状态','样品编号','产品编码','样品名称','产品信息','样品类别','样品类型','客户','版本','库存批次','入库日期','库龄','当前库存','安全库存','库位','FIFO 建议','责任人'],
-    requests:['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],
-    shipments:['状态','寄样单号','索样申请','客户','样品清单','样品组','面单二维码','业务员','业务确认','快递单号'],
-    pps:['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],
-    development:['状态','任务编号','需求类型','客户编码','客户名称权限','产品系列','产品编码','产品名称','产品状态','产品信息','材料','颜色','工艺信息','烫印工艺','定制要求','样品数量','检验项目','品管结果','费用方式','转标准样/PPS','版本','优先级','责任人','计划完成'],
-    settings:['角色','允许操作','可见数据','限制']
-  };
-  const fields=presets[scope]||['状态','编号','客户','产品','负责人','日期','操作'];
+  const fields=pageFields();
+  const selected=columnViews[scope]||fields;
   document.querySelector('#modalTitle').textContent='表格字段与格式';
-  document.querySelector('#formFields').innerHTML=`<div class="view-config"><div class="bulk-help"><strong>我的表格格式</strong><span>可保存为个人默认格式，也可分享给其它用户在相应界面使用。</span></div><div class="field-grid">${fields.map((f,i)=>`<label><input type="checkbox" ${i<7?'checked':''}>${f}</label>`).join('')}</div><div class="view-options"><label>列宽策略<select><option>自动适配内容</option><option>等宽紧凑</option><option>按上次拖拽宽度</option></select></label><label>行样式<select><option>Excel 斑马纹：一行深一行无填充色</option><option>无底色，仅网格线</option></select></label><label>共享范围<select><option>仅自己</option><option>同部门用户</option><option>同角色用户</option><option>全部用户</option></select></label></div></div>`;
+  document.querySelector('#formFields').innerHTML=`<div class="view-config"><div class="bulk-help"><strong>我的表格字段</strong><span>勾选要显示的列，应用后保存到当前浏览器的个人格式。</span></div><div class="field-grid">${fields.map(f=>`<label><input type="checkbox" data-field-name="${f}" ${selected.includes(f)?'checked':''}>${f}</label>`).join('')}</div><div class="view-options"><label>列宽策略<select><option>自动适配内容</option><option>等宽紧凑</option><option>按上次拖拽宽度</option></select></label><label>行样式<select><option>Excel 斑马纹：一行深一行无填充色</option><option>无底色，仅网格线</option></select></label><label>共享范围<select><option>仅自己</option><option>同部门用户</option><option>同角色用户</option><option>全部用户</option></select></label></div><div class="modal-actions"><button type="button" class="secondary" id="fieldsAll">全选</button><button type="button" class="secondary" id="fieldsDefault">恢复默认</button><button type="button" class="primary" id="fieldsApply">应用字段</button></div></div>`;
   document.querySelector('#businessForm').dataset.type='view';
   document.querySelector('#modalWrap').classList.add('show');
+  document.querySelector('#fieldsAll').onclick=()=>document.querySelectorAll('[data-field-name]').forEach(x=>x.checked=true);
+  document.querySelector('#fieldsDefault').onclick=()=>{
+    delete columnViews[scope];
+    localStorage.setItem('megee-column-views',JSON.stringify(columnViews));
+    closeModal();applyColumnView(scope);showToast('已恢复默认字段');
+  };
+  document.querySelector('#fieldsApply').onclick=()=>{
+    const chosen=[...document.querySelectorAll('[data-field-name]:checked')].map(x=>x.dataset.fieldName);
+    columnViews[scope]=chosen.length?chosen:fields;
+    localStorage.setItem('megee-column-views',JSON.stringify(columnViews));
+    closeModal();applyColumnView(scope);showToast('字段显示已应用并保存');
+  };
 }
 
 function openRequestTypeGuide(){
