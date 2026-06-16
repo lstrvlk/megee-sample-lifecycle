@@ -1,10 +1,10 @@
 const store = {
   samples: [
-    {id:'SP-2026-0048',name:'MZ-50 定量泵套装',category:'常规库存样',customer:'通用',version:'V2',stock:86,safety:30,location:'A-02-03',status:'可用',owner:'赵敏',updated:'2026-06-12'},
-    {id:'SP-2026-0047',name:'哑光银电镀乳液泵',category:'开发样',customer:'沐光个护',version:'V3',stock:12,safety:10,location:'B-01-06',status:'预留',owner:'周明',updated:'2026-06-11'},
-    {id:'SP-2026-0043',name:'24/410 香水喷雾泵',category:'新品发布样',customer:'通用',version:'V1',stock:24,safety:20,location:'A-03-02',status:'可用',owner:'赵敏',updated:'2026-06-10'},
-    {id:'SP-2026-0039',name:'PCR 材质泡沫泵',category:'客户定制样',customer:'蓝岸日化',version:'V4',stock:4,safety:10,location:'B-04-01',status:'待补样',owner:'陈柯',updated:'2026-06-09'},
-    {id:'SP-2026-0036',name:'锁扣式粉底液泵',category:'PPS 留样',customer:'诺安生物',version:'V2',stock:6,safety:4,location:'PPS-02-08',status:'可用',owner:'王若兰',updated:'2026-06-08'}
+    {id:'SP-2026-0048',name:'MZ-50 定量泵套装',productCode:'P-MZ50-2410',spec:'24/410 白色标准泵',category:'常规库存样',sampleType:'标准样品',customer:'通用',version:'V2',batch:'B20260518-01',inDate:'2026-05-18',stock:86,safety:30,location:'A-02-03',fifo:'优先出 B20260518-01',status:'可用',owner:'赵敏',updated:'2026-06-12'},
+    {id:'SP-2026-0047',name:'哑光银电镀乳液泵',productCode:'P-LP28-SV',spec:'28/410 哑光银电镀',category:'开发样',sampleType:'客户定制样',customer:'沐光个护',version:'V3',batch:'B20260528-02',inDate:'2026-05-28',stock:12,safety:10,location:'B-01-06',fifo:'优先出 B20260528-02',status:'预留',owner:'周明',updated:'2026-06-11'},
+    {id:'SP-2026-0043',name:'24/410 香水喷雾泵',productCode:'P-SP24-STD',spec:'24/410 透明喷雾泵',category:'新品发布样',sampleType:'标准样品',customer:'通用',version:'V1',batch:'B20260601-01',inDate:'2026-06-01',stock:24,safety:20,location:'A-03-02',fifo:'优先出 B20260601-01',status:'可用',owner:'赵敏',updated:'2026-06-10'},
+    {id:'SP-2026-0039',name:'PCR 材质泡沫泵',productCode:'P-FP-PCR30',spec:'PCR 30% Pantone 7527C',category:'客户定制样',sampleType:'颜色限度样',customer:'蓝岸日化',version:'V4',batch:'B20260420-03',inDate:'2026-04-20',stock:4,safety:10,location:'B-04-01',fifo:'库存不足，先补样',status:'待补样',owner:'陈柯',updated:'2026-06-09'},
+    {id:'SP-2026-0036',name:'锁扣式粉底液泵',productCode:'P-FD-LOCK',spec:'锁扣式粉底液泵标准样',category:'PPS 留样',sampleType:'PPS 标准样',customer:'诺安生物',version:'V2',batch:'B20260330-01',inDate:'2026-03-30',stock:6,safety:4,location:'PPS-02-08',fifo:'PPS 留样，需 QA 授权',status:'可用',owner:'王若兰',updated:'2026-06-08'}
   ],
   requests: [
     {id:'SR-2026-0089',customer:'海澜美妆',purpose:'新客户开发',items:'MZ-50 定量泵 × 6',owner:'李雯',charge:'不收费',status:'待审批',date:'2026-06-12'},
@@ -54,11 +54,28 @@ store.shipments=store.shipments.map((x,i)=>({
   approval:x.approval||((x.status||'').includes('签收')||(x.status||'').includes('寄出')?'业务已批准':'待确认'),
   ...x,
 }));
+const sampleDefaults={
+  'SP-2026-0048':{productCode:'P-MZ50-2410',spec:'24/410 白色标准泵',sampleType:'标准样品',batch:'B20260518-01',inDate:'2026-05-18',fifo:'优先出 B20260518-01'},
+  'SP-2026-0047':{productCode:'P-LP28-SV',spec:'28/410 哑光银电镀',sampleType:'客户定制样',batch:'B20260528-02',inDate:'2026-05-28',fifo:'优先出 B20260528-02'},
+  'SP-2026-0043':{productCode:'P-SP24-STD',spec:'24/410 透明喷雾泵',sampleType:'标准样品',batch:'B20260601-01',inDate:'2026-06-01',fifo:'优先出 B20260601-01'},
+  'SP-2026-0039':{productCode:'P-FP-PCR30',spec:'PCR 30% Pantone 7527C',sampleType:'颜色限度样',batch:'B20260420-03',inDate:'2026-04-20',fifo:'库存不足，先补样'},
+  'SP-2026-0036':{productCode:'P-FD-LOCK',spec:'锁扣式粉底液泵标准样',sampleType:'PPS 标准样',batch:'B20260330-01',inDate:'2026-03-30',fifo:'PPS 留样，需 QA 授权'}
+};
+store.samples=store.samples.map((x,i)=>({
+  productCode:`P-SAMPLE-${String(i+1).padStart(3,'0')}`,
+  spec:x.name||'标准样品',
+  sampleType:x.category||'标准样品',
+  batch:`B202606${String(i+1).padStart(2,'0')}-01`,
+  inDate:'2026-06-01',
+  fifo:'按最早入库批次优先出库',
+  ...sampleDefaults[x.id],
+  ...x,
+}));
 const persist=()=>localStorage.setItem('megee-sample-lifecycle',JSON.stringify(store));
 const nextId=(prefix,list)=>`${prefix}-2026-${String(list.length+1).padStart(4,'0')}`;
 
 const app=document.querySelector('#app');
-const pageTitles={dashboard:'业务总览',tasks:'我的待办',samples:'样品库',requests:'客户索样',development:'开发样',inventory:'库存管理',shipments:'寄样管理',charges:'收费管理',pps:'PPS 中心',trace:'追溯中心',settings:'基础配置'};
+const pageTitles={dashboard:'业务总览',tasks:'我的待办',samples:'样品仓库',requests:'客户索样',development:'开发样',inventory:'库存管理',shipments:'寄样管理',charges:'收费管理',pps:'PPS 中心',trace:'追溯中心',settings:'基础配置'};
 let currentPage='dashboard';
 
 const pill=(value)=>`<span class="pill ${value.includes('过期')||value.includes('异常')||value.includes('补样')?'danger':value.includes('待')||value.includes('即将')?'warning':value.includes('生效')||value.includes('签收')||value.includes('收费')||value==='可用'?'success':'info'}"><i></i>${value}</span>`;
@@ -211,6 +228,66 @@ function renderPermissionsErp(){
   panel('寄样权限流程','重点控制收件人隐私：样品组扫码匹配但不可见明文，业务员确认后后台放行',table(['节点','责任角色','动作','权限/系统规则'],flowRows));
 }
 
+const stockAge=(date)=>{
+  const days=Math.max(0,Math.ceil((new Date('2026-06-16')-new Date(date))/(24*60*60*1000)));
+  return `${days} 天`;
+};
+const sampleById=(id)=>store.samples.find(x=>x.id===id)||{};
+
+function renderSamplesWarehouse(){
+  const totalStock=store.samples.reduce((sum,s)=>sum+Number(s.stock||0),0);
+  const lowStock=store.samples.filter(s=>Number(s.stock||0)<Number(s.safety||0)).length;
+  const standardSamples=store.samples.filter(s=>(s.sampleType||'').includes('标准')).length;
+  const fifoQueue=[...store.samples].sort((a,b)=>new Date(a.inDate)-new Date(b.inDate));
+  const stockRows=fifoQueue.map(s=>`<tr data-detail="${s.id}">
+    <td>${pill(s.status)}</td>
+    <td class="link">${s.id}</td>
+    <td>${s.productCode}</td>
+    <td><strong>${s.name}</strong><small>${s.spec}</small></td>
+    <td>${s.category}</td>
+    <td>${s.sampleType}</td>
+    <td>${s.customer}</td>
+    <td>${s.version}</td>
+    <td>${s.batch}</td>
+    <td>${s.inDate}</td>
+    <td>${stockAge(s.inDate)}</td>
+    <td class="${Number(s.stock)<Number(s.safety)?'negative':'positive'}">${s.stock}</td>
+    <td>${s.safety}</td>
+    <td>${s.location}</td>
+    <td>${s.fifo}</td>
+    <td>${s.owner}</td>
+  </tr>`).join('');
+  const movementRows=store.inventory.map(x=>{
+    const s=sampleById(x.sample);
+    return `<tr data-detail="${x.id}">
+      <td>${x.time}</td>
+      <td class="link">${x.id}</td>
+      <td><span class="action ${x.qty>0?'in':'out'}">${x.action}</span></td>
+      <td>${x.sample}</td>
+      <td><strong>${s.name||'未匹配样品'}</strong><small>${s.productCode||'待维护产品编码'}</small></td>
+      <td>${s.category||'待维护'}</td>
+      <td>${s.batch||'待确认'}</td>
+      <td class="${x.qty>0?'positive':'negative'}">${x.qty>0?'+':''}${x.qty}</td>
+      <td>${x.from}</td>
+      <td>${x.to}</td>
+      <td>${s.location||x.from}</td>
+      <td>${s.fifo||'按入库时间先进先出'}</td>
+      <td>${x.operator}</td>
+    </tr>`;
+  }).join('');
+  app.innerHTML=head('样品仓库','以 ERP 紧凑台账管理标准样品库存、产品信息、类别、库位与出入库流水，并按先进先出原则发料。',erpActions('sample'))+
+  compactSummary([
+    {label:'库存样品',value:store.samples.length,note:'当前台账'},
+    {label:'库存总量',value:totalStock,note:'件'},
+    {label:'标准样品',value:standardSamples,note:'含 PPS 标准样'},
+    {label:'低于安全库存',value:lowStock,note:'需补样'},
+    {label:'最早批次',value:fifoQueue[0]?.batch||'--',note:'FIFO 优先'},
+    {label:'出入库流水',value:store.inventory.length,note:'不可删除'}
+  ])+
+  panel('样品库存情况','按入库日期排序，默认遵循先进先出；库存低于安全库存时突出显示。',table(['状态','样品编号','产品编码','样品名称 / 产品信息','样品类别','样品类型','客户','版本','库存批次','入库日期','库龄','当前库存','安全库存','库位','FIFO 建议','责任人'],stockRows),erpSearch('按样品编号、产品编码、名称、类别、库位或批次过滤'))+
+  panel('出入库明细列表','所有入库、出库、预留、盘点和调拨动作保留流水，并自动带出样品库存上下文。',table(['时间','流水号','动作','样品编号','样品 / 产品编码','样品类别','批次','数量','来源位置','目标/单据','当前库位','先进先出建议','操作人'],movementRows),erpSearch('按流水号、样品编号、批次、库位、单据或操作人过滤'));
+}
+
 function openBulkPaste(type){
   const titleMap={sample:'批量导入样品',request:'批量导入索样',development:'批量导入开发样',inventory:'批量导入库存流水',shipment:'批量导入寄样单',charge:'批量导入收费单',pps:'批量导入 PPS'};
   document.querySelector('#modalTitle').textContent=titleMap[type]||'批量粘贴导入';
@@ -222,6 +299,7 @@ function openBulkPaste(type){
 function openViewSettings(scope){
   const presets={
     dashboard:['状态','业务编号','客户','样品清单','负责人','日期','操作'],
+    samples:['状态','样品编号','产品编码','样品名称','产品信息','样品类别','样品类型','客户','版本','库存批次','入库日期','库龄','当前库存','安全库存','库位','FIFO 建议','责任人'],
     requests:['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],
     shipments:['状态','寄样单号','索样申请','客户','样品清单','样品组','面单二维码','业务员','业务确认','快递单号'],
     pps:['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],
@@ -235,6 +313,7 @@ function openViewSettings(scope){
 }
 
 renderers.dashboard=renderDashboardErp;
+renderers.samples=renderSamplesWarehouse;
 renderers.requests=renderRequestsErp;
 renderers.shipments=renderShipmentsErp;
 renderers.pps=renderPPSErp;
@@ -250,11 +329,11 @@ function openDetail(id){
   document.querySelector('#overlay').classList.add('show');document.querySelector('#drawer').classList.add('show');
 }
 
-function fieldName(k){return ({name:'样品名称',category:'样品分类',customer:'客户',version:'版本',stock:'当前库存',safety:'安全库存',location:'实物位置',status:'状态',owner:'责任人',updated:'更新时间',purpose:'用途',items:'样品清单',charge:'收费状态',date:'日期',product:'产品',requirement:'开发要求',due:'计划完成',action:'库存动作',qty:'数量',from:'来源',to:'目标',operator:'操作人',time:'时间',request:'索样申请',carrier:'快递公司',tracking:'快递单号',receiver:'收件人',type:'类型',defaultAmount:'默认金额',actualAmount:'实际金额',waiver:'减免金额',order:'订单',expiry:'有效期',evidence:'批准证据数'})[k]||k}
+function fieldName(k){return ({name:'样品名称',productCode:'产品编码',spec:'规格/产品信息',category:'样品分类',sampleType:'样品类型',customer:'客户',version:'版本',batch:'库存批次',inDate:'入库日期',fifo:'先进先出建议',stock:'当前库存',safety:'安全库存',location:'实物位置',status:'状态',owner:'责任人',updated:'更新时间',purpose:'用途',items:'样品清单',charge:'收费状态',date:'日期',product:'产品',requirement:'开发要求',due:'计划完成',action:'库存动作',qty:'数量',from:'来源',to:'目标',operator:'操作人',time:'时间',request:'索样申请',carrier:'快递公司',tracking:'快递单号',receiver:'收件人',type:'类型',defaultAmount:'默认金额',actualAmount:'实际金额',waiver:'减免金额',order:'订单',expiry:'有效期',evidence:'批准证据数'})[k]||k}
 
 function openModal(type){
   const configs={
-    sample:['新建样品档案',`<label>样品名称<input name="name" required placeholder="输入产品或样品名称"></label><div class="form-row"><label>样品分类<select name="category"><option>常规库存样</option><option>开发样</option><option>新品发布样</option><option>PPS 留样</option></select></label><label>初始数量<input name="qty" type="number" min="0" value="0"></label></div><div class="form-row"><label>存放位置<input name="location" required placeholder="如 A-02-03"></label><label>安全库存<input name="safety" type="number" value="10"></label></div>`],
+    sample:['新建样品入库',`<div class="form-row"><label>样品名称<input name="name" required placeholder="输入产品或样品名称"></label><label>产品编码<input name="productCode" required placeholder="如 P-MZ50-2410"></label></div><label>规格/产品信息<input name="spec" required placeholder="规格、颜色、工艺、客户标准等"></label><div class="form-row"><label>样品分类<select name="category"><option>常规库存样</option><option>开发样</option><option>新品发布样</option><option>客户定制样</option><option>PPS 留样</option></select></label><label>样品类型<select name="sampleType"><option>标准样品</option><option>客户定制样</option><option>颜色限度样</option><option>PPS 标准样</option></select></label></div><div class="form-row"><label>初始数量<input name="qty" type="number" min="0" value="0"></label><label>安全库存<input name="safety" type="number" value="10"></label></div><div class="form-row"><label>库存批次<input name="batch" required placeholder="如 B20260616-01"></label><label>入库日期<input name="inDate" type="date" value="2026-06-16"></label></div><div class="form-row"><label>库位<input name="location" required placeholder="如 A-02-03"></label><label>FIFO 建议<input name="fifo" placeholder="按最早入库批次优先出库"></label></div>`],
     request:['新建索样申请',`<div class="form-row"><label>客户名称<input name="customer" required placeholder="输入客户名称"></label><label>样品用途<select name="purpose"><option>新客户开发</option><option>老客户补样</option><option>新品推广</option><option>项目开发</option><option>订单确认</option></select></label></div><label>样品清单<input name="items" required placeholder="样品名称 × 数量"></label><div class="form-row"><label>是否收费<select name="charge"><option>系统判断</option><option>不收费</option><option>需要收费</option></select></label><label>预计订单机会<input name="opportunity" placeholder="如 ¥ 100,000"></label></div><label>备注<textarea name="note" placeholder="填写客户要求和寄样说明"></textarea></label>`],
     development:['发起打样任务',`<div class="form-row"><label>客户<input name="customer" required></label><label>产品<input name="product" required></label></div><label>开发要求<textarea name="requirement" required placeholder="颜色、结构、工艺和装配要求"></textarea></label><div class="form-row"><label>数量<input name="qty" type="number" value="10"></label><label>预计完成<input name="due" type="date" value="2026-06-18"></label></div>`],
     inventory:['新增库存动作',`<div class="form-row"><label>库存动作<select name="action"><option>入库</option><option>出库</option><option>借出</option><option>归还</option><option>调拨</option><option>盘点</option><option>报废</option></select></label><label>样品编号<input name="sample" required placeholder="SP-2026-0000"></label></div><div class="form-row"><label>数量<input name="qty" type="number" min="1" value="1"></label><label>目标位置/单据<input name="to" required></label></div>`],
@@ -277,7 +356,7 @@ document.querySelector('#businessForm').onsubmit=e=>{
   e.preventDefault();
   const type=e.currentTarget.dataset.type;
   const data=Object.fromEntries(new FormData(e.currentTarget));
-  if(type==='sample') store.samples.unshift({id:nextId('SP',store.samples),name:data.name,category:data.category,customer:'通用',version:'V1',stock:Number(data.qty),safety:Number(data.safety),location:data.location,status:'可用',owner:'林知夏',updated:'2026-06-12'});
+  if(type==='sample') store.samples.unshift({id:nextId('SP',store.samples),name:data.name,productCode:data.productCode,spec:data.spec,category:data.category,sampleType:data.sampleType,customer:'通用',version:'V1',batch:data.batch,inDate:data.inDate,fifo:data.fifo||'按最早入库批次优先出库',stock:Number(data.qty),safety:Number(data.safety),location:data.location,status:'可用',owner:'林知夏',updated:'2026-06-16'});
   if(type==='request') store.requests.unshift({id:nextId('SR',store.requests),customer:data.customer,purpose:data.purpose,items:data.items,owner:'林知夏',charge:data.charge==='需要收费'?'待报价':'不收费',status:'待审批',date:'2026-06-12'});
   if(type==='development') store.development.unshift({id:nextId('SY',store.development),customer:data.customer,product:data.product,requirement:data.requirement,owner:'林知夏',version:'V1',due:data.due,status:'待评估'});
   if(type==='inventory') store.inventory.unshift({id:nextId('IT',store.inventory),sample:data.sample,action:data.action,qty:Number(data.qty),from:'待确认',to:data.to,operator:'林知夏',time:'2026-06-12 11:30'});
