@@ -145,6 +145,9 @@ function bindPage(){
   app.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>navigate(x.dataset.go));
   app.querySelectorAll('[data-new]').forEach(x=>x.onclick=()=>openModal(x.dataset.new));
   app.querySelectorAll('[data-bulk]').forEach(x=>x.onclick=()=>openBulkPaste(x.dataset.bulk));
+  app.querySelectorAll('[data-view]').forEach(x=>x.onclick=()=>openViewSettings(x.dataset.view));
+  app.querySelectorAll('[data-save-view]').forEach(x=>x.onclick=()=>showToast('已保存为我的表格格式'));
+  app.querySelectorAll('[data-share-view]').forEach(x=>x.onclick=()=>showToast('已分享给同角色用户，对方可在对应界面选择该格式'));
   app.querySelectorAll('[data-detail]').forEach(x=>x.onclick=()=>openDetail(x.dataset.detail));
   const filter=app.querySelector('[data-filter]');if(filter)filter.oninput=()=>app.querySelectorAll('tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(filter.value.toLowerCase()));
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
@@ -152,7 +155,7 @@ function bindPage(){
 }
 
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
-const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary">高级筛选</button></div>`;
+const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary">筛选</button><button class="secondary" data-view="${currentPage}">字段</button><button class="secondary" data-save-view>保存格式</button><button class="secondary" data-share-view>分享</button></div>`;
 const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
 
 function renderDashboardErp(){
@@ -213,6 +216,21 @@ function openBulkPaste(type){
   document.querySelector('#modalTitle').textContent=titleMap[type]||'批量粘贴导入';
   document.querySelector('#formFields').innerHTML=`<div class="bulk-help"><strong>从 Excel 复制后直接粘贴</strong><span>第一行建议保留表头；系统后续会按列名自动识别字段。</span></div><textarea name="bulkPaste" class="bulk-paste" placeholder="示例：&#10;客户\t用途\t样品清单\t数量\t是否收费&#10;沐光个护\t项目开发\t哑光银乳液泵\t12\t需要收费"></textarea><div class="bulk-preview"><span>下一步功能讨论：列映射、错误校验、重复编号处理、批量保存前预览。</span></div>`;
   document.querySelector('#businessForm').dataset.type='bulk';
+  document.querySelector('#modalWrap').classList.add('show');
+}
+
+function openViewSettings(scope){
+  const presets={
+    dashboard:['状态','业务编号','客户','样品清单','负责人','日期','操作'],
+    requests:['状态','申请编号','客户','用途','样品清单','负责人','费用','申请日期','操作'],
+    shipments:['状态','寄样单号','索样申请','客户','样品清单','样品组','面单二维码','业务员','业务确认','快递单号'],
+    pps:['状态','PPS 编号','客户','产品','订单','版本','有效期','证据数','组成','操作'],
+    settings:['角色','允许操作','可见数据','限制']
+  };
+  const fields=presets[scope]||['状态','编号','客户','产品','负责人','日期','操作'];
+  document.querySelector('#modalTitle').textContent='表格字段与格式';
+  document.querySelector('#formFields').innerHTML=`<div class="view-config"><div class="bulk-help"><strong>我的表格格式</strong><span>可保存为个人默认格式，也可分享给其它用户在相应界面使用。</span></div><div class="field-grid">${fields.map((f,i)=>`<label><input type="checkbox" ${i<7?'checked':''}>${f}</label>`).join('')}</div><div class="view-options"><label>列宽策略<select><option>自动适配内容</option><option>等宽紧凑</option><option>按上次拖拽宽度</option></select></label><label>行样式<select><option>Excel 斑马纹：一行深一行无填充色</option><option>无底色，仅网格线</option></select></label><label>共享范围<select><option>仅自己</option><option>同部门用户</option><option>同角色用户</option><option>全部用户</option></select></label></div></div>`;
+  document.querySelector('#businessForm').dataset.type='view';
   document.querySelector('#modalWrap').classList.add('show');
 }
 
