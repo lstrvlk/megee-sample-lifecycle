@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEGEE 样品生命周期管理系统</title>
-  <link rel="stylesheet" href="styles.css?v=navtooltip-20260616">
+  <link rel="stylesheet" href="styles.css?v=authfilter-20260616">
 </head>
 <body>
   <aside class="sidebar">
@@ -51,6 +51,16 @@
     </div>
   </div>
   <div class="toast" id="toast"><span>✓</span><div><strong>操作成功</strong><small id="toastText"></small></div></div>
-  <script src="app.js?v=navtooltip-20260616"></script>
+  <div class="auth-gate" id="authGate">
+    <form class="auth-card" id="authForm">
+      <span class="auth-mark">M</span>
+      <h2>进入美集样品中心</h2>
+      <p>请输入访问密码。本密码门用于原型演示，正式部署需接入后端账号权限。</p>
+      <input id="authPassword" type="password" autocomplete="current-password" placeholder="访问密码">
+      <small id="authError"></small>
+      <button class="primary" type="submit">进入系统</button>
+    </form>
+  </div>
+  <script src="app.js?v=authfilter-20260616"></script>
 </body>
 </html>

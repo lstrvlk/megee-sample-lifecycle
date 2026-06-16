@@ -225,11 +225,16 @@ function bindPage(){
   app.querySelectorAll('[data-filter]').forEach(input=>{
     applyTableFilter(input);
     input.onkeydown=e=>{if(e.key==='Enter') applyTableFilter(input,true)};
-    input.oninput=()=>{if(!input.value.trim()) applyTableFilter(input)};
+    input.onkeyup=()=>applyTableFilter(input);
+    input.oninput=()=>applyTableFilter(input);
   });
   app.querySelectorAll('[data-filter-run]').forEach(button=>button.onclick=()=>{
-    const input=(button.closest('.panel')||app).querySelector('[data-filter]');
+    const input=(button.closest('.erp-filter')||button.closest('.panel')||app).querySelector('[data-filter]');
     if(input) applyTableFilter(input,true);
+  });
+  app.querySelectorAll('[data-filter-clear]').forEach(button=>button.onclick=()=>{
+    const input=(button.closest('.erp-filter')||button.closest('.panel')||app).querySelector('[data-filter]');
+    if(input){input.value='';applyTableFilter(input,true);input.focus();}
   });
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
@@ -244,6 +249,7 @@ function applyTableFilter(input,notify=false){
     const text=row.textContent.toLowerCase();
     const matched=!terms.length||terms.every(term=>text.includes(term));
     row.hidden=!matched;
+    row.style.display=matched?'':'none';
     if(matched) visible+=1;
   });
   const count=scope.querySelector('[data-filter-count]');
@@ -252,7 +258,7 @@ function applyTableFilter(input,notify=false){
 }
 
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
-const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary" data-filter-run>筛选</button><small data-filter-count></small><button class="secondary" data-view="${currentPage}">字段</button><button class="secondary" data-save-view>保存格式</button><button class="secondary" data-share-view>分享</button></div>`;
+const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button type="button" class="secondary" data-filter-run>筛选</button><button type="button" class="secondary" data-filter-clear>清空</button><small data-filter-count></small><button type="button" class="secondary" data-view="${currentPage}">字段</button><button type="button" class="secondary" data-save-view>保存格式</button><button type="button" class="secondary" data-share-view>分享</button></div>`;
 const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
 const requestTypeGuide=()=>`<section class="type-guide"><strong>需求类型说明</strong><span>需求类型用于标识样品发起动因：市场推广、技术验证、客户项目、质量改善或新模首样。</span><button class="secondary" data-type-guide>查看定义</button></section>`;
 
@@ -443,6 +449,29 @@ function openModal(type){
 function closeDrawer(){document.querySelector('#overlay').classList.remove('show');document.querySelector('#drawer').classList.remove('show')}
 function closeModal(){document.querySelector('#modalWrap').classList.remove('show')}
 function showToast(text){const t=document.querySelector('#toast');document.querySelector('#toastText').textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),2500)}
+const ACCESS_PASSWORD='MEGEE2026';
+function initAuthGate(){
+  const gate=document.querySelector('#authGate');
+  const form=document.querySelector('#authForm');
+  if(!gate||!form) return;
+  const authed=sessionStorage.getItem('megee-auth-ok')==='1';
+  gate.classList.toggle('hide',authed);
+  document.body.classList.toggle('auth-locked',!authed);
+  form.onsubmit=e=>{
+    e.preventDefault();
+    const input=document.querySelector('#authPassword');
+    const error=document.querySelector('#authError');
+    if((input.value||'').trim()===ACCESS_PASSWORD){
+      sessionStorage.setItem('megee-auth-ok','1');
+      gate.classList.add('hide');
+      document.body.classList.remove('auth-locked');
+      showToast('已进入系统');
+    } else {
+      error.textContent='密码不正确，请重试';
+      input.select();
+    }
+  };
+}
 function setSidebarCollapsed(collapsed,save=true){
   document.body.classList.toggle('sidebar-collapsed',collapsed);
   const toggle=document.querySelector('#sidebarToggle');
@@ -484,5 +513,6 @@ document.querySelector('#businessForm').onsubmit=e=>{
 };
 document.querySelector('#globalSearch').onclick=()=>navigate('trace');
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal()}});
+initAuthGate();
 initSidebar();
 navigate('dashboard');
