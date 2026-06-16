@@ -1,7 +1,7 @@
 const store = {
   samples: [
     {id:'SP-2026-0048',name:'MZ-50 定量泵套装',productCode:'P-MZ50-2410',spec:'24/410 白色标准泵',category:'常规库存样',sampleType:'标准样品',customer:'通用',version:'V2',batch:'B20260518-01',inDate:'2026-05-18',stock:86,safety:30,location:'A-02-03',fifo:'优先出 B20260518-01',status:'可用',owner:'赵敏',updated:'2026-06-12'},
-    {id:'SP-2026-0047',name:'哑光银电镀乳液泵',productCode:'P-LP28-SV',spec:'28/410 哑光银电镀',category:'开发样',sampleType:'客户定制样',customer:'沐光个护',version:'V3',batch:'B20260528-02',inDate:'2026-05-28',stock:12,safety:10,location:'B-01-06',fifo:'优先出 B20260528-02',status:'预留',owner:'周明',updated:'2026-06-11'},
+    {id:'SP-2026-0047',name:'哑光银电镀乳液泵',productCode:'P-LP28-SV',spec:'28/410 哑光银电镀',category:'定制样品',sampleType:'客户定制样',customer:'沐光个护',version:'V3',batch:'B20260528-02',inDate:'2026-05-28',stock:12,safety:10,location:'B-01-06',fifo:'优先出 B20260528-02',status:'预留',owner:'周明',updated:'2026-06-11'},
     {id:'SP-2026-0043',name:'24/410 香水喷雾泵',productCode:'P-SP24-STD',spec:'24/410 透明喷雾泵',category:'新品发布样',sampleType:'标准样品',customer:'通用',version:'V1',batch:'B20260601-01',inDate:'2026-06-01',stock:24,safety:20,location:'A-03-02',fifo:'优先出 B20260601-01',status:'可用',owner:'赵敏',updated:'2026-06-10'},
     {id:'SP-2026-0039',name:'PCR 材质泡沫泵',productCode:'P-FP-PCR30',spec:'PCR 30% Pantone 7527C',category:'客户定制样',sampleType:'颜色限度样',customer:'蓝岸日化',version:'V4',batch:'B20260420-03',inDate:'2026-04-20',stock:4,safety:10,location:'B-04-01',fifo:'库存不足，先补样',status:'待补样',owner:'陈柯',updated:'2026-06-09'},
     {id:'SP-2026-0036',name:'锁扣式粉底液泵',productCode:'P-FD-LOCK',spec:'锁扣式粉底液泵标准样',category:'PPS 留样',sampleType:'PPS 标准样',customer:'诺安生物',version:'V2',batch:'B20260330-01',inDate:'2026-03-30',stock:6,safety:4,location:'PPS-02-08',fifo:'PPS 留样，需 QA 授权',status:'可用',owner:'王若兰',updated:'2026-06-08'}
@@ -75,7 +75,7 @@ const persist=()=>localStorage.setItem('megee-sample-lifecycle',JSON.stringify(s
 const nextId=(prefix,list)=>`${prefix}-2026-${String(list.length+1).padStart(4,'0')}`;
 
 const app=document.querySelector('#app');
-const pageTitles={dashboard:'业务总览',tasks:'我的待办',samples:'样品仓库',requests:'客户索样',development:'开发样',inventory:'库存管理',shipments:'寄样管理',charges:'收费管理',pps:'PPS 中心',trace:'追溯中心',settings:'基础配置'};
+const pageTitles={dashboard:'业务总览',tasks:'我的待办',samples:'样品仓库',requests:'客户索样',development:'定制样品',inventory:'库存管理',shipments:'寄样管理',charges:'收费管理',pps:'PPS 中心',trace:'追溯中心',settings:'基础配置'};
 let currentPage='dashboard';
 
 const pill=(value)=>`<span class="pill ${value.includes('过期')||value.includes('异常')||value.includes('补样')?'danger':value.includes('待')||value.includes('即将')?'warning':value.includes('生效')||value.includes('签收')||value.includes('收费')||value==='可用'?'success':'info'}"><i></i>${value}</span>`;
@@ -120,7 +120,7 @@ function renderRequests(){
 
 function renderDevelopment(){
   const rows=store.development.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td><strong>${x.product}</strong><small>${x.customer}</small></td><td>${x.requirement}</td><td>${x.version}</td><td>${x.owner}</td><td>${x.due}</td><td>${pill(x.status)}</td><td><button class="text-button">查看</button></td></tr>`).join('');
-  app.innerHTML=head('开发样管理','管理无库存或特殊颜色、结构、工艺需求的打样任务','<button class="primary" data-new="development">＋ 发起打样任务</button>')+cards([{icon:'◇',color:'blue',label:'进行中',value:9,unit:'项'},{icon:'检',color:'amber',label:'待检验',value:3,unit:'项'},{icon:'↻',color:'violet',label:'版本迭代',value:5,unit:'项'},{icon:'✓',color:'green',label:'本月完成',value:14,unit:'项'}])+panel('开发任务','从需求评估到客户反馈持续保留版本',table(['任务编号','产品 / 客户','开发要求','版本','责任人','计划完成','状态',''],rows));
+  app.innerHTML=head('定制样品管理','管理客户定制打样、版本迭代、检验确认和转标准样流程','<button class="primary" data-new="development">＋ 新建定制样品</button>')+cards([{icon:'◇',color:'blue',label:'进行中',value:9,unit:'项'},{icon:'检',color:'amber',label:'待检验',value:3,unit:'项'},{icon:'↻',color:'violet',label:'版本迭代',value:5,unit:'项'},{icon:'✓',color:'green',label:'本月完成',value:14,unit:'项'}])+panel('定制样品任务','从客户需求评估到反馈确认持续保留版本',table(['任务编号','产品 / 客户','定制要求','版本','责任人','计划完成','状态',''],rows));
 }
 
 function renderInventory(){
@@ -209,7 +209,7 @@ function renderPermissionsErp(){
   const roles=[
     ['业务部','创建索样、查看自己客户、确认寄样收件信息、批准寄样、录入客户反馈','收件人明文、客户联系人、自己客户业务数据','不可直接改库存，不可查看全量费用审批'],
     ['品管部','样品检验、PPS、颜色限度板、缺陷板、批准证据维护','质量记录、PPS 证据、检验结果','不可查看无关客户收件地址'],
-    ['打样组','处理开发样、上传打样结果、维护版本信息','开发要求、工艺结果、样品版本','不可审批费用减免'],
+    ['打样组','处理定制样品、上传打样结果、维护版本信息','定制要求、工艺结果、样品版本','不可审批费用减免'],
     ['样品组','备样、贴快递面单、扫码录入、出入库、安排取件','样品清单、位置、面单二维码、快递状态','看不到收件人姓名/电话/地址明文'],
     ['管理员','基础资料、角色分配、编号规则、费用规则、提醒配置','业务配置与用户权限','不能绕过审批直接修改历史流水'],
     ['超级管理员','全部配置、紧急授权、系统审计、数据恢复','全量数据与审计日志','关键操作必须留痕']
@@ -289,7 +289,7 @@ function renderSamplesWarehouse(){
 }
 
 function openBulkPaste(type){
-  const titleMap={sample:'批量导入样品',request:'批量导入索样',development:'批量导入开发样',inventory:'批量导入库存流水',shipment:'批量导入寄样单',charge:'批量导入收费单',pps:'批量导入 PPS'};
+  const titleMap={sample:'批量导入样品',request:'批量导入索样',development:'批量导入定制样品',inventory:'批量导入库存流水',shipment:'批量导入寄样单',charge:'批量导入收费单',pps:'批量导入 PPS'};
   document.querySelector('#modalTitle').textContent=titleMap[type]||'批量粘贴导入';
   document.querySelector('#formFields').innerHTML=`<div class="bulk-help"><strong>从 Excel 复制后直接粘贴</strong><span>第一行建议保留表头；系统后续会按列名自动识别字段。</span></div><textarea name="bulkPaste" class="bulk-paste" placeholder="示例：&#10;客户\t用途\t样品清单\t数量\t是否收费&#10;沐光个护\t项目开发\t哑光银乳液泵\t12\t需要收费"></textarea><div class="bulk-preview"><span>下一步功能讨论：列映射、错误校验、重复编号处理、批量保存前预览。</span></div>`;
   document.querySelector('#businessForm').dataset.type='bulk';
@@ -329,13 +329,13 @@ function openDetail(id){
   document.querySelector('#overlay').classList.add('show');document.querySelector('#drawer').classList.add('show');
 }
 
-function fieldName(k){return ({name:'样品名称',productCode:'产品编码',spec:'规格/产品信息',category:'样品分类',sampleType:'样品类型',customer:'客户',version:'版本',batch:'库存批次',inDate:'入库日期',fifo:'先进先出建议',stock:'当前库存',safety:'安全库存',location:'实物位置',status:'状态',owner:'责任人',updated:'更新时间',purpose:'用途',items:'样品清单',charge:'收费状态',date:'日期',product:'产品',requirement:'开发要求',due:'计划完成',action:'库存动作',qty:'数量',from:'来源',to:'目标',operator:'操作人',time:'时间',request:'索样申请',carrier:'快递公司',tracking:'快递单号',receiver:'收件人',type:'类型',defaultAmount:'默认金额',actualAmount:'实际金额',waiver:'减免金额',order:'订单',expiry:'有效期',evidence:'批准证据数'})[k]||k}
+function fieldName(k){return ({name:'样品名称',productCode:'产品编码',spec:'规格/产品信息',category:'样品分类',sampleType:'样品类型',customer:'客户',version:'版本',batch:'库存批次',inDate:'入库日期',fifo:'先进先出建议',stock:'当前库存',safety:'安全库存',location:'实物位置',status:'状态',owner:'责任人',updated:'更新时间',purpose:'用途',items:'样品清单',charge:'收费状态',date:'日期',product:'产品',requirement:'定制要求',due:'计划完成',action:'库存动作',qty:'数量',from:'来源',to:'目标',operator:'操作人',time:'时间',request:'索样申请',carrier:'快递公司',tracking:'快递单号',receiver:'收件人',type:'类型',defaultAmount:'默认金额',actualAmount:'实际金额',waiver:'减免金额',order:'订单',expiry:'有效期',evidence:'批准证据数'})[k]||k}
 
 function openModal(type){
   const configs={
-    sample:['新建样品入库',`<div class="form-row"><label>样品名称<input name="name" required placeholder="输入产品或样品名称"></label><label>产品编码<input name="productCode" required placeholder="如 P-MZ50-2410"></label></div><label>规格/产品信息<input name="spec" required placeholder="规格、颜色、工艺、客户标准等"></label><div class="form-row"><label>样品分类<select name="category"><option>常规库存样</option><option>开发样</option><option>新品发布样</option><option>客户定制样</option><option>PPS 留样</option></select></label><label>样品类型<select name="sampleType"><option>标准样品</option><option>客户定制样</option><option>颜色限度样</option><option>PPS 标准样</option></select></label></div><div class="form-row"><label>初始数量<input name="qty" type="number" min="0" value="0"></label><label>安全库存<input name="safety" type="number" value="10"></label></div><div class="form-row"><label>库存批次<input name="batch" required placeholder="如 B20260616-01"></label><label>入库日期<input name="inDate" type="date" value="2026-06-16"></label></div><div class="form-row"><label>库位<input name="location" required placeholder="如 A-02-03"></label><label>FIFO 建议<input name="fifo" placeholder="按最早入库批次优先出库"></label></div>`],
+    sample:['新建样品入库',`<div class="form-row"><label>样品名称<input name="name" required placeholder="输入产品或样品名称"></label><label>产品编码<input name="productCode" required placeholder="如 P-MZ50-2410"></label></div><label>规格/产品信息<input name="spec" required placeholder="规格、颜色、工艺、客户标准等"></label><div class="form-row"><label>样品分类<select name="category"><option>常规库存样</option><option>定制样品</option><option>新品发布样</option><option>客户定制样</option><option>PPS 留样</option></select></label><label>样品类型<select name="sampleType"><option>标准样品</option><option>客户定制样</option><option>颜色限度样</option><option>PPS 标准样</option></select></label></div><div class="form-row"><label>初始数量<input name="qty" type="number" min="0" value="0"></label><label>安全库存<input name="safety" type="number" value="10"></label></div><div class="form-row"><label>库存批次<input name="batch" required placeholder="如 B20260616-01"></label><label>入库日期<input name="inDate" type="date" value="2026-06-16"></label></div><div class="form-row"><label>库位<input name="location" required placeholder="如 A-02-03"></label><label>FIFO 建议<input name="fifo" placeholder="按最早入库批次优先出库"></label></div>`],
     request:['新建索样申请',`<div class="form-row"><label>客户名称<input name="customer" required placeholder="输入客户名称"></label><label>样品用途<select name="purpose"><option>新客户开发</option><option>老客户补样</option><option>新品推广</option><option>项目开发</option><option>订单确认</option></select></label></div><label>样品清单<input name="items" required placeholder="样品名称 × 数量"></label><div class="form-row"><label>是否收费<select name="charge"><option>系统判断</option><option>不收费</option><option>需要收费</option></select></label><label>预计订单机会<input name="opportunity" placeholder="如 ¥ 100,000"></label></div><label>备注<textarea name="note" placeholder="填写客户要求和寄样说明"></textarea></label>`],
-    development:['发起打样任务',`<div class="form-row"><label>客户<input name="customer" required></label><label>产品<input name="product" required></label></div><label>开发要求<textarea name="requirement" required placeholder="颜色、结构、工艺和装配要求"></textarea></label><div class="form-row"><label>数量<input name="qty" type="number" value="10"></label><label>预计完成<input name="due" type="date" value="2026-06-18"></label></div>`],
+    development:['新建定制样品',`<div class="form-row"><label>客户<input name="customer" required></label><label>产品<input name="product" required></label></div><label>定制要求<textarea name="requirement" required placeholder="颜色、结构、工艺、Logo、材质或装配要求"></textarea></label><div class="form-row"><label>数量<input name="qty" type="number" value="10"></label><label>预计完成<input name="due" type="date" value="2026-06-18"></label></div>`],
     inventory:['新增库存动作',`<div class="form-row"><label>库存动作<select name="action"><option>入库</option><option>出库</option><option>借出</option><option>归还</option><option>调拨</option><option>盘点</option><option>报废</option></select></label><label>样品编号<input name="sample" required placeholder="SP-2026-0000"></label></div><div class="form-row"><label>数量<input name="qty" type="number" min="1" value="1"></label><label>目标位置/单据<input name="to" required></label></div>`],
     shipment:['创建寄样单',`<div class="form-row"><label>索样申请<input name="request" required placeholder="SR-2026-0000"></label><label>客户<input name="customer" required></label></div><div class="form-row"><label>收件人<input name="receiver" required></label><label>联系电话<input name="phone" required></label></div><label>收件地址<input name="address" required></label>`],
     charge:['新建收费单',`<div class="form-row"><label>索样申请<input name="request" required></label><label>收费类型<select><option>生产样品</option><option>特殊工艺</option><option>库存样管理费</option></select></label></div><div class="form-row"><label>默认金额<input type="number" value="1000"></label><label>实际金额<input type="number" value="1000"></label></div><label>费用说明<textarea></textarea></label>`],
