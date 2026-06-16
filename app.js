@@ -222,13 +222,37 @@ function bindPage(){
   app.querySelectorAll('[data-share-view]').forEach(x=>x.onclick=()=>showToast('已分享给同角色用户，对方可在对应界面选择该格式'));
   app.querySelectorAll('[data-type-guide]').forEach(x=>x.onclick=openRequestTypeGuide);
   app.querySelectorAll('[data-detail]').forEach(x=>x.onclick=()=>openDetail(x.dataset.detail));
-  const filter=app.querySelector('[data-filter]');if(filter)filter.oninput=()=>app.querySelectorAll('tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(filter.value.toLowerCase()));
+  app.querySelectorAll('[data-filter]').forEach(input=>{
+    applyTableFilter(input);
+    input.onkeydown=e=>{if(e.key==='Enter') applyTableFilter(input,true)};
+    input.oninput=()=>{if(!input.value.trim()) applyTableFilter(input)};
+  });
+  app.querySelectorAll('[data-filter-run]').forEach(button=>button.onclick=()=>{
+    const input=(button.closest('.panel')||app).querySelector('[data-filter]');
+    if(input) applyTableFilter(input,true);
+  });
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
 }
 
+function applyTableFilter(input,notify=false){
+  const scope=input.closest('.panel')||app;
+  const rows=[...scope.querySelectorAll('tbody tr')];
+  const terms=input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let visible=0;
+  rows.forEach(row=>{
+    const text=row.textContent.toLowerCase();
+    const matched=!terms.length||terms.every(term=>text.includes(term));
+    row.hidden=!matched;
+    if(matched) visible+=1;
+  });
+  const count=scope.querySelector('[data-filter-count]');
+  if(count) count.textContent=terms.length?`显示 ${visible}/${rows.length}`:`共 ${rows.length} 条`;
+  if(notify) showToast(terms.length?`筛选完成：显示 ${visible}/${rows.length} 条`:'已清除筛选');
+}
+
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
-const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary">筛选</button><button class="secondary" data-view="${currentPage}">字段</button><button class="secondary" data-save-view>保存格式</button><button class="secondary" data-share-view>分享</button></div>`;
+const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button class="secondary" data-filter-run>筛选</button><small data-filter-count></small><button class="secondary" data-view="${currentPage}">字段</button><button class="secondary" data-save-view>保存格式</button><button class="secondary" data-share-view>分享</button></div>`;
 const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
 const requestTypeGuide=()=>`<section class="type-guide"><strong>需求类型说明</strong><span>需求类型用于标识样品发起动因：市场推广、技术验证、客户项目、质量改善或新模首样。</span><button class="secondary" data-type-guide>查看定义</button></section>`;
 
