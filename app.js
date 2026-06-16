@@ -278,7 +278,7 @@ function renderDashboard(){
 function renderTasks(){
   const rows=[
     ['PPS-MUGUANG-2026-0009','PPS 续签','沐光个护','2026-06-13','高','即将到期'],['SY-2026-0029','样品检验','沐光个护','今天 16:00','高','待检验'],['SR-2026-0089','索样审批','海澜美妆','今天 17:00','普通','待审批'],['CH-2026-0028','费用确认','沐光个护','2026-06-14','普通','待客户确认'],['SH-2026-0056','寄样出库','蓝岸日化','2026-06-14','普通','待寄出']];
-  app.innerHTML=head('我的待办','集中处理审批、检验、出库、寄样和有效期事项')+cards([{icon:'✓',color:'blue',label:'全部待办',value:8,unit:'项'},{icon:'!',color:'amber',label:'高风险',value:2,unit:'项'},{icon:'审',color:'violet',label:'待我审批',value:3,unit:'项'},{icon:'✓',color:'green',label:'本周完成',value:21,unit:'项'}])+panel('待处理事项','点击任务查看完整上下文',table(['业务编号','任务类型','客户','截止时间','优先级','状态','操作'],rows.map(r=>`<tr data-detail="${r[0]}"><td class="link">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="priority ${r[4]==='高'?'high':''}">${r[4]}</span></td><td>${pill(r[5])}</td><td><button class="text-button">处理</button></td></tr>`).join('')));
+  app.innerHTML=head('我的待办','集中处理审批、检验、出库、寄样和有效期事项')+cards([{icon:'✓',color:'blue',label:'全部待办',value:8,unit:'项'},{icon:'!',color:'amber',label:'高风险',value:2,unit:'项'},{icon:'审',color:'violet',label:'待我审批',value:3,unit:'项'},{icon:'✓',color:'green',label:'本周完成',value:21,unit:'项'}])+panel('待处理事项','点击任务查看完整上下文',table(['业务编号','任务类型','客户','截止时间','优先级','状态','操作'],rows.map(r=>`<tr data-detail="${r[0]}"><td class="link">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="priority ${r[4]==='高'?'high':''}">${r[4]}</span></td><td>${pill(r[5])}</td><td><button class="text-button">处理</button></td></tr>`).join('')),erpSearch('按业务编号、任务类型、客户或状态过滤','tasks'));
 }
 
 function renderSamples(){
@@ -328,7 +328,7 @@ function renderDevelopment(){
 
 function renderInventory(){
   const rows=store.inventory.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.sample}</td><td><span class="action ${x.qty>0?'in':'out'}">${x.action}</span></td><td class="${x.qty>0?'positive':'negative'}">${x.qty>0?'+':''}${x.qty}</td><td>${x.from}</td><td>${x.to}</td><td>${x.operator}</td><td>${x.time}</td></tr>`).join('');
-  app.innerHTML=head('库存管理','所有库存动作生成不可删除的流水','<div><button class="secondary" data-new="inventory">盘点</button> <button class="primary" data-new="inventory">＋ 库存操作</button></div>')+cards([{icon:'▤',color:'blue',label:'库存总量',value:'2,846',unit:'件'},{icon:'□',color:'green',label:'今日入库',value:38,unit:'件'},{icon:'➜',color:'violet',label:'今日出库',value:26,unit:'件'},{icon:'!',color:'amber',label:'库存预警',value:4,unit:'款'}])+panel('库存流水','入库、出库、预留、借还、调拨、盘点和报废',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],rows));
+  app.innerHTML=head('库存管理','所有库存动作生成不可删除的流水','<div><button class="secondary" data-new="inventory">盘点</button> <button class="primary" data-new="inventory">＋ 库存操作</button></div>')+cards([{icon:'▤',color:'blue',label:'库存总量',value:'2,846',unit:'件'},{icon:'□',color:'green',label:'今日入库',value:38,unit:'件'},{icon:'➜',color:'violet',label:'今日出库',value:26,unit:'件'},{icon:'!',color:'amber',label:'库存预警',value:4,unit:'款'}])+panel('库存流水','入库、出库、预留、借还、调拨、盘点和报废',table(['流水号','样品编号','动作','数量','来源位置','目标/单据','操作人','时间'],rows),erpSearch('按流水号、样品编号、动作、库位或单据过滤','inventory'));
 }
 
 function renderShipments(){
@@ -338,7 +338,7 @@ function renderShipments(){
 
 function renderCharges(){
   const rows=store.charges.map(x=>`<tr data-detail="${x.id}"><td class="link">${x.id}</td><td>${x.request}</td><td>${x.customer}</td><td>${x.type}</td><td>${money(x.defaultAmount)}</td><td>${money(x.waiver)}</td><td><strong>${money(x.actualAmount)}</strong></td><td>${pill(x.status)}</td><td><button class="text-button">记录</button></td></tr>`).join('');
-  app.innerHTML=head('收费管理','生产样品默认收费，金额和减免规则均可配置','<button class="primary" data-new="charge">＋ 新建收费单</button>')+cards([{icon:'¥',color:'blue',label:'本月应收',value:'¥ 28,600'},{icon:'✓',color:'green',label:'已确认',value:'¥ 19,400'},{icon:'审',color:'amber',label:'待审批减免',value:3,unit:'笔'},{icon:'↓',color:'violet',label:'本月减免',value:'¥ 2,800'}])+panel('收费与减免','保留默认金额、实际金额、减免原因和审批记录',table(['收费单号','索样申请','客户','收费类型','默认金额','减免','实际金额','状态',''],rows));
+  app.innerHTML=head('收费管理','生产样品默认收费，金额和减免规则均可配置','<button class="primary" data-new="charge">＋ 新建收费单</button>')+cards([{icon:'¥',color:'blue',label:'本月应收',value:'¥ 28,600'},{icon:'✓',color:'green',label:'已确认',value:'¥ 19,400'},{icon:'审',color:'amber',label:'待审批减免',value:3,unit:'笔'},{icon:'↓',color:'violet',label:'本月减免',value:'¥ 2,800'}])+panel('收费与减免','保留默认金额、实际金额、减免原因和审批记录',table(['收费单号','索样申请','客户','收费类型','默认金额','减免','实际金额','状态',''],rows),erpSearch('按收费单、索样申请、客户、收费类型或状态过滤','charges'));
 }
 
 function renderPPS(){
@@ -370,33 +370,44 @@ function bindPage(){
   app.querySelectorAll('[data-share-view]').forEach(x=>x.onclick=()=>showToast('已分享给同角色用户，对方可在对应界面选择该格式'));
   app.querySelectorAll('[data-type-guide]').forEach(x=>x.onclick=openRequestTypeGuide);
   app.querySelectorAll('[data-detail]').forEach(x=>x.onclick=()=>openDetail(x.dataset.detail));
-  app.querySelectorAll('[data-filter]').forEach(input=>{
-    applyTableFilter(input);
-    input.onkeydown=e=>{if(e.key==='Enter') applyTableFilter(input,true)};
-    input.onkeyup=()=>applyTableFilter(input);
-    input.oninput=()=>applyTableFilter(input);
+  app.querySelectorAll('.erp-filter').forEach(filter=>applyErpFilters(filter));
+  app.querySelectorAll('[data-filter],[data-filter-select],[data-filter-from],[data-filter-to]').forEach(field=>{
+    field.onkeydown=e=>{if(e.key==='Enter') applyErpFilters(field.closest('.erp-filter'),true)};
+    field.onchange=()=>applyErpFilters(field.closest('.erp-filter'));
+    field.oninput=()=>{if(field.matches('[data-filter]')) applyErpFilters(field.closest('.erp-filter'))};
   });
   app.querySelectorAll('[data-filter-run]').forEach(button=>button.onclick=()=>{
-    const input=(button.closest('.erp-filter')||button.closest('.panel')||app).querySelector('[data-filter]');
-    if(input) applyTableFilter(input,true);
+    applyErpFilters(button.closest('.erp-filter'),true);
   });
   app.querySelectorAll('[data-filter-clear]').forEach(button=>button.onclick=()=>{
-    const input=(button.closest('.erp-filter')||button.closest('.panel')||app).querySelector('[data-filter]');
-    if(input){input.value='';applyTableFilter(input,true);input.focus();}
+    const filter=button.closest('.erp-filter');
+    filter.querySelectorAll('input,select').forEach(field=>field.value='');
+    applyErpFilters(filter,true);
+    filter.querySelector('[data-filter]')?.focus();
   });
   initPagedTables(app);
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
 }
 
-function applyTableFilter(input,notify=false){
-  const scope=input.closest('.panel')||app;
+function applyErpFilters(filter,notify=false){
+  if(!filter) return;
+  const scope=filter.closest('.panel')||app;
   const rows=[...scope.querySelectorAll('tbody tr')];
-  const terms=input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const input=filter.querySelector('[data-filter]');
+  const terms=(input?.value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const selected=[...filter.querySelectorAll('[data-filter-select]')].map(x=>x.value.trim().toLowerCase()).filter(Boolean);
+  const from=filter.querySelector('[data-filter-from]')?.value||'';
+  const to=filter.querySelector('[data-filter-to]')?.value||'';
   let visible=0;
   rows.forEach(row=>{
     const text=row.textContent.toLowerCase();
-    const matched=!terms.length||terms.every(term=>text.includes(term));
+    const rowDate=(row.textContent.match(/\d{4}-\d{2}-\d{2}/)||[''])[0];
+    const matchedTerms=!terms.length||terms.every(term=>text.includes(term));
+    const matchedSelects=!selected.length||selected.every(value=>text.includes(value));
+    const matchedFrom=!from||(rowDate&&rowDate>=from);
+    const matchedTo=!to||(rowDate&&rowDate<=to);
+    const matched=matchedTerms&&matchedSelects&&matchedFrom&&matchedTo;
     row.dataset.filterOut=matched?'0':'1';
     if(!row.closest('.table-wrap')?.dataset.paged){
       row.hidden=!matched;
@@ -405,9 +416,10 @@ function applyTableFilter(input,notify=false){
     if(matched) visible+=1;
   });
   const count=scope.querySelector('[data-filter-count]');
-  if(count) count.textContent=terms.length?`显示 ${visible}/${rows.length}`:`共 ${rows.length} 条`;
+  const active=terms.length||selected.length||from||to;
+  if(count) count.textContent=active?`显示 ${visible}/${rows.length}`:`共 ${rows.length} 条`;
   scope.querySelectorAll('.table-wrap[data-paged]').forEach(wrap=>{wrap.dataset.page='1';updatePagedTable(wrap)});
-  if(notify) showToast(terms.length?`筛选完成：显示 ${visible}/${rows.length} 条`:'已清除筛选');
+  if(notify) showToast(active?`筛选完成：显示 ${visible}/${rows.length} 条`:'已清除筛选');
 }
 
 function initPagedTables(scope=app){
@@ -458,7 +470,22 @@ function updatePagedTable(wrap){
 }
 
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
-const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤')=>`<div class="erp-filter"><span>快速过滤</span><input data-filter placeholder="${placeholder}"><button type="button" class="secondary" data-filter-run>筛选</button><button type="button" class="secondary" data-filter-clear>清空</button><small data-filter-count></small><button type="button" class="secondary" data-view="${currentPage}">字段</button><button type="button" class="secondary" data-save-view>保存格式</button><button type="button" class="secondary" data-share-view>分享</button></div>`;
+const filterPresets={
+  samples:[['状态',['可用','预留','待补样']],['类别',['常规库存样','新品发布样','客户定制样','PPS 留样','颜色限度样']],['样品类型',['标准样品','客户定制样','颜色限度样','PPS 标准样']]],
+  requests:[['状态',['待审批','待备货','待寄出','已签收','待客户确认']],['费用',['不收费','待报价','已减免']]],
+  tasks:[['优先级',['高','普通']],['状态',['即将到期','待检验','待审批','待客户确认','待寄出']]],
+  development:[['状态',['待评估','打样中','待检验','待客户反馈','可转标准样']],['需求类型',['市场驱动','技术驱动','客户驱动','质量驱动','新模首样']],['费用',['需报价','特殊工艺收费','不收费']]],
+  inventory:[['动作',['入库','出库','预留','调拨','盘点调整']]],
+  shipments:[['状态',['待业务确认','后台已放行','待快递取件','已取件','运输中','已签收']],['快递',['顺丰速运','京东物流','跨越速运']]],
+  charges:[['状态',['待客户确认','已减免','已收费']],['收费类型',['特殊电镀','库存样管理费','新结构打样']]],
+  pps:[['状态',['生效中','即将到期','待客户批准','已过期']]],
+  settings:[['角色',['业务部','品管部','打样组','样品组','管理员','超级管理员']]],
+  dashboard:[['状态',['待审批','待备货','待寄出','即将到期','待客户批准','已过期','出库','入库']]]
+};
+const erpSearch=(placeholder='按编号、客户、产品、状态快速过滤',page=currentPage)=>{
+  const selects=(filterPresets[page]||[]).map(([label,items])=>`<label>${label}<select data-filter-select><option value="">全部</option>${items.map(x=>`<option>${x}</option>`).join('')}</select></label>`).join('');
+  return `<div class="erp-filter"><label class="filter-keyword">关键词<input data-filter placeholder="${placeholder}"></label>${selects}<label>开始日期<input data-filter-from type="date"></label><label>结束日期<input data-filter-to type="date"></label><button type="button" class="secondary" data-filter-run>查询</button><button type="button" class="secondary" data-filter-clear>重置</button><small data-filter-count></small><button type="button" class="secondary" data-view="${page}">字段</button><button type="button" class="secondary" data-save-view>保存格式</button><button type="button" class="secondary" data-share-view>分享</button></div>`;
+};
 const compactSummary=(items)=>`<section class="erp-summary">${items.map(x=>`<div><span>${x.label}</span><strong>${x.value}</strong><small>${x.note||''}</small></div>`).join('')}</section>`;
 const requestTypeGuide=()=>`<section class="type-guide"><strong>需求类型说明</strong><span>需求类型用于标识样品发起动因：市场推广、技术验证、客户项目、质量改善或新模首样。</span><button class="secondary" data-type-guide>查看定义</button></section>`;
 
