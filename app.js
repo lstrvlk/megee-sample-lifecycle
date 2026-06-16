@@ -71,6 +71,154 @@ store.samples=store.samples.map((x,i)=>({
   ...sampleDefaults[x.id],
   ...x,
 }));
+function ensureWarehouseDemoVolume(){
+  if(store.samples.length<80){
+    const names=['MZ-50 定量泵套装','24/410 香水喷雾泵','PCR 材质泡沫泵','锁扣式粉底液泵','28/410 乳液泵','真空按压泵','泡沫泵限度样','电镀盖标准样','喷雾瓶套装','膏霜瓶配套泵'];
+    const categories=['常规库存样','新品发布样','客户定制样','PPS 留样','颜色限度样'];
+    const types=['标准样品','客户定制样','颜色限度样','PPS 标准样'];
+    const customers=['通用','海澜美妆','沐光个护','蓝岸日化','诺安生物','青屿实验室'];
+    const owners=['赵敏','林知夏','周明','陈柯','王若兰'];
+    const start=store.samples.length+1;
+    for(let i=start;i<=96;i++){
+      const idx=i-1;
+      const date=`2026-${String(3+(idx%4)).padStart(2,'0')}-${String(1+(idx%27)).padStart(2,'0')}`;
+      const stock=(idx*7)%118;
+      const safety=[8,10,20,30][idx%4];
+      const id=`SP-2026-${String(i).padStart(4,'0')}`;
+      store.samples.push({
+        id,
+        name:names[idx%names.length],
+        productCode:`P-${['MZ','SP','FP','FD','LP','VP'][idx%6]}-${String(2400+i)}`,
+        spec:`${['24/410','28/410','30ml','50ml'][idx%4]} ${['白色','透明','哑光银','PCR 30%','蓝色限度'][idx%5]}`,
+        category:categories[idx%categories.length],
+        sampleType:types[idx%types.length],
+        customer:customers[idx%customers.length],
+        version:`V${1+(idx%4)}`,
+        batch:`B2026${String(3+(idx%4)).padStart(2,'0')}${String(1+(idx%27)).padStart(2,'0')}-${String(1+(idx%3)).padStart(2,'0')}`,
+        inDate:date,
+        stock,
+        safety,
+        location:`${['A','B','C','PPS'][idx%4]}-${String(1+(idx%8)).padStart(2,'0')}-${String(1+(idx%12)).padStart(2,'0')}`,
+        fifo:stock<safety?'库存不足，建议先补样':`优先出 ${id.replace('SP-','B')}`,
+        status:stock<safety?'待补样':idx%9===0?'预留':'可用',
+        owner:owners[idx%owners.length],
+        updated:'2026-06-16'
+      });
+    }
+  }
+  if(store.inventory.length<80){
+    const actions=['入库','出库','预留','调拨','盘点调整'];
+    const base=[...store.inventory];
+    for(let i=store.inventory.length+1;i<=120;i++){
+      const sample=store.samples[(i*3)%store.samples.length];
+      const action=actions[i%actions.length];
+      const qty=action==='入库'?10+(i%25):-(1+(i%12));
+      store.inventory.push({
+        id:`IT-2026-${String(i).padStart(4,'0')}`,
+        sample:sample.id,
+        action,
+        qty,
+        from:sample.location,
+        to:action==='出库'||action==='预留'?`SR-2026-${String(80+i).padStart(4,'0')}`:`${['A','B','C'][i%3]}-${String(1+(i%8)).padStart(2,'0')}-${String(1+(i%12)).padStart(2,'0')}`,
+        operator:['赵敏','林知夏','周明'][i%3],
+        time:`2026-06-${String(1+(i%12)).padStart(2,'0')} ${String(8+(i%9)).padStart(2,'0')}:${String((i*7)%60).padStart(2,'0')}`
+      });
+    }
+    store.inventory=[...base,...store.inventory.slice(base.length)];
+  }
+}
+ensureWarehouseDemoVolume();
+function ensureBusinessDemoVolume(){
+  if(store.requests.length<60){
+    const customers=['海澜美妆','沐光个护','蓝岸日化','诺安生物','青屿实验室','谷野科技','星禾日化','澜庭个护'];
+    const purposes=['新客户开发','老客户补样','新品推广','项目开发','订单确认','展会样品'];
+    const statuses=['待审批','待备货','待寄出','已签收','待客户确认'];
+    for(let i=store.requests.length+1;i<=72;i++){
+      store.requests.push({
+        id:`SR-2026-${String(i).padStart(4,'0')}`,
+        customer:customers[i%customers.length],
+        purpose:purposes[i%purposes.length],
+        items:`${store.samples[i%store.samples.length].name} × ${1+(i%12)}`,
+        owner:['李雯','林知夏','周明'][i%3],
+        charge:i%5===0?'待报价':i%7===0?'已减免':'不收费',
+        status:statuses[i%statuses.length],
+        date:`2026-06-${String(1+(i%15)).padStart(2,'0')}`
+      });
+    }
+  }
+  if(store.development.length<45){
+    const requestTypes=['市场驱动','技术驱动','客户驱动','质量驱动','新模首样'];
+    const series=['乳液泵系列','泡沫泵系列','喷雾泵系列','真空泵系列','套装系列','其它 / 自定义'];
+    const statuses=['待评估','打样中','待检验','待客户反馈','可转标准样'];
+    for(let i=store.development.length+1;i<=54;i++){
+      const customerCode=`C-${['MG','LA','NA','QY','HY'][i%5]}-${String(100+i)}`;
+      store.development.push({
+        id:`SY-2026-${String(i).padStart(4,'0')}`,
+        customer:['沐光个护','蓝岸日化','诺安生物','青屿实验室','海澜美妆'][i%5],
+        customerCode,
+        requestType:requestTypes[i%requestTypes.length],
+        productSeries:series[i%series.length],
+        product:`${['渐变喷涂','PCR 材质','新结构','电镀外观','低残留'][i%5]}${['乳液泵','泡沫泵','喷雾泵','真空泵'][i%4]}`,
+        productCode:`DEV-${String(500+i)}`,
+        productStatus:['需求评估中','结构设计中','已有基础件','小批试样','客户确认中'][i%5],
+        productInfo:`${['24/410','28/410','30ml','50ml'][i%4]} 关键参数待验证`,
+        material:['PP','PCR PP 30%','PE / PP','ABS'][i%4],
+        color:['哑光白','透明','哑光银','Pantone 7527C'][i%4],
+        process:['喷涂 / 附着力','电镀 / 盐雾','注塑调色','结构验证'][i%4],
+        hotStamp:i%3===0?'客户标识烫印':'无烫印',
+        requirement:'按需求类型发起的定制样品验证，需保留检验和转化记录',
+        sampleQty:4+(i%18),
+        testItems:'外观、装配、密封、色差',
+        qaResult:['待检验','内部通过','需复测'][i%3],
+        costMode:['系统判断','需报价','特殊工艺收费','不收费'][i%4],
+        convertPlan:['确认后转样品仓库','检验合格后转定制标准样','客户确认后建 PPS','仅本次打样'][i%4],
+        owner:['周明','陈柯','林知夏'][i%3],
+        version:`V${1+(i%4)}`,
+        due:`2026-06-${String(10+(i%18)).padStart(2,'0')}`,
+        priority:i%6===0?'高':'普通',
+        status:statuses[i%statuses.length]
+      });
+    }
+  }
+  if(store.shipments.length<50){
+    const statuses=['待业务确认','后台已放行','待快递取件','已取件','运输中','已签收'];
+    for(let i=store.shipments.length+1;i<=64;i++){
+      const req=store.requests[i%store.requests.length];
+      store.shipments.push({
+        id:`SH-2026-${String(i).padStart(4,'0')}`,
+        request:req.id,
+        customer:req.customer,
+        samples:req.items,
+        carrier:['顺丰速运','京东物流','跨越速运'][i%3],
+        tracking:i%4===0?'--':`SF${String(1438200000+i*37)}`,
+        waybillQr:`QR-SF-${String(i).padStart(4,'0')}`,
+        receiver:`收件人${i} / 地址已脱敏`,
+        receiverMasked:'已扫码匹配，样品组不可见',
+        salesperson:req.owner,
+        sampleOperator:['赵敏','林知夏'][i%2],
+        status:statuses[i%statuses.length],
+        date:i%3===0?'--':`2026-06-${String(1+(i%15)).padStart(2,'0')}`,
+        approval:i%3===0?'待确认':'业务已批准'
+      });
+    }
+  }
+  if(store.pps.length<36){
+    const statuses=['生效中','即将到期','待客户批准','已过期'];
+    for(let i=store.pps.length+1;i<=42;i++){
+      store.pps.push({
+        id:`PPS-${['MG','LA','NA','QY','HY'][i%5]}-2026-${String(i).padStart(4,'0')}`,
+        customer:['沐光个护','蓝岸日化','诺安生物','青屿实验室','海澜美妆'][i%5],
+        product:store.samples[i%store.samples.length].name,
+        order:`SO-2606${String(100+i)}`,
+        version:`V${1+(i%4)}`,
+        expiry:`2026-${String(7+(i%6)).padStart(2,'0')}-${String(1+(i%27)).padStart(2,'0')}`,
+        evidence:1+(i%5),
+        status:statuses[i%statuses.length]
+      });
+    }
+  }
+}
+ensureBusinessDemoVolume();
 const developmentDefaults={
   'SY-2026-0031':{customerCode:'C-QY-018',requestType:'技术驱动',productSeries:'真空泵系列',productCode:'DEV-VP-15ML',productStatus:'结构设计中',productInfo:'15ml 真空泵，低残留结构',material:'PP / PE',color:'哑光白',process:'哑光喷涂 / 低残留结构验证',hotStamp:'无烫印',sampleQty:10,testItems:'出液量、密封、跌落、装配',qaResult:'待检验',costMode:'需报价',convertPlan:'检验合格后转定制标准样',priority:'高'},
   'SY-2026-0029':{customerCode:'C-MG-042',requestType:'客户驱动',productSeries:'乳液泵系列',productCode:'DEV-LP-GRAD',productStatus:'已有基础件',productInfo:'28/410 乳液泵，渐变外观',material:'PP',color:'银色至透明渐变',process:'渐变喷涂 / 耐酒精测试',hotStamp:'客户标识烫印待确认',sampleQty:12,testItems:'耐酒精、附着力、色差、装配',qaResult:'待检验',costMode:'特殊工艺收费',convertPlan:'客户确认后转样品仓库',priority:'高'},
@@ -107,7 +255,7 @@ const pill=(value)=>`<span class="pill ${value.includes('过期')||value.include
 const money=(value)=>`¥ ${Number(value).toLocaleString('zh-CN')}`;
 const head=(title,desc,button='')=>`<section class="page-head"><div><p class="eyebrow">MEGEE SAMPLE LIFECYCLE</p><h1>${title}</h1><p>${desc}</p></div>${button}</section>`;
 const cards=(items)=>`<section class="metrics">${items.map(x=>`<article><div class="metric-top"><span class="metric-icon ${x.color}">${x.icon}</span><small>${x.note||'实时数据'}</small></div><p>${x.label}</p><strong>${x.value}</strong><em>${x.unit||''}</em></article>`).join('')}</section>`;
-const table=(columns,rows,empty='暂无数据')=>`<div class="table-wrap"><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${columns.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`;
+const table=(columns,rows,empty='暂无数据')=>`<div class="table-wrap" data-paged="true"><table><thead><tr>${columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${columns.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`;
 const panel=(title,desc,body,tools='')=>`<section class="panel"><div class="panel-head"><div><h2>${title}</h2><p>${desc}</p></div>${tools}</div>${body}</section>`;
 
 function renderDashboard(){
@@ -236,6 +384,7 @@ function bindPage(){
     const input=(button.closest('.erp-filter')||button.closest('.panel')||app).querySelector('[data-filter]');
     if(input){input.value='';applyTableFilter(input,true);input.focus();}
   });
+  initPagedTables(app);
   const traceButton=app.querySelector('#traceButton');if(traceButton)traceButton.onclick=()=>{app.querySelector('#traceResult').innerHTML=traceResult(app.querySelector('#traceInput').value);showToast('已汇总关联的样品、库存、寄样和批准记录')};
   const save=app.querySelector('#saveSettings');if(save)save.onclick=()=>showToast('基础配置已保存');
 }
@@ -248,13 +397,64 @@ function applyTableFilter(input,notify=false){
   rows.forEach(row=>{
     const text=row.textContent.toLowerCase();
     const matched=!terms.length||terms.every(term=>text.includes(term));
-    row.hidden=!matched;
-    row.style.display=matched?'':'none';
+    row.dataset.filterOut=matched?'0':'1';
+    if(!row.closest('.table-wrap')?.dataset.paged){
+      row.hidden=!matched;
+      row.style.display=matched?'':'none';
+    }
     if(matched) visible+=1;
   });
   const count=scope.querySelector('[data-filter-count]');
   if(count) count.textContent=terms.length?`显示 ${visible}/${rows.length}`:`共 ${rows.length} 条`;
+  scope.querySelectorAll('.table-wrap[data-paged]').forEach(wrap=>{wrap.dataset.page='1';updatePagedTable(wrap)});
   if(notify) showToast(terms.length?`筛选完成：显示 ${visible}/${rows.length} 条`:'已清除筛选');
+}
+
+function initPagedTables(scope=app){
+  scope.querySelectorAll('.table-wrap[data-paged]').forEach((wrap,index)=>{
+    if(!wrap.dataset.page) wrap.dataset.page='1';
+    if(!wrap.dataset.pageSize) wrap.dataset.pageSize='25';
+    if(!wrap.nextElementSibling||!wrap.nextElementSibling.classList.contains('table-pager')){
+      const pager=document.createElement('div');
+      pager.className='table-pager';
+      pager.innerHTML=`<span data-page-info></span><button type="button" class="secondary" data-page-prev>上一页</button><button type="button" class="secondary" data-page-next>下一页</button><label>每页 <select data-page-size><option>25</option><option>50</option><option>100</option><option value="all">全部</option></select></label>`;
+      wrap.after(pager);
+      pager.querySelector('[data-page-prev]').onclick=()=>{wrap.dataset.page=String(Math.max(1,Number(wrap.dataset.page||1)-1));updatePagedTable(wrap)};
+      pager.querySelector('[data-page-next]').onclick=()=>{wrap.dataset.page=String(Number(wrap.dataset.page||1)+1);updatePagedTable(wrap)};
+      pager.querySelector('[data-page-size]').onchange=e=>{wrap.dataset.pageSize=e.target.value;wrap.dataset.page='1';updatePagedTable(wrap)};
+    }
+    updatePagedTable(wrap);
+  });
+}
+
+function updatePagedTable(wrap){
+  const rows=[...wrap.querySelectorAll('tbody tr')].filter(row=>!row.querySelector('.empty'));
+  const filtered=rows.filter(row=>row.dataset.filterOut!=='1');
+  const pager=wrap.nextElementSibling?.classList.contains('table-pager')?wrap.nextElementSibling:null;
+  const pageSizeValue=wrap.dataset.pageSize||'25';
+  const pageSize=pageSizeValue==='all'?filtered.length||1:Number(pageSizeValue);
+  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));
+  const page=Math.min(Math.max(1,Number(wrap.dataset.page||1)),totalPages);
+  wrap.dataset.page=String(page);
+  const start=(page-1)*pageSize;
+  const end=start+pageSize;
+  rows.forEach(row=>{
+    const filteredOut=row.dataset.filterOut==='1';
+    const index=filtered.indexOf(row);
+    const visible=!filteredOut&&index>=start&&index<end;
+    row.hidden=!visible;
+    row.style.display=visible?'':'none';
+  });
+  if(pager){
+    const info=pager.querySelector('[data-page-info]');
+    const from=filtered.length?start+1:0;
+    const to=Math.min(end,filtered.length);
+    info.textContent=`显示 ${from}-${to} / ${filtered.length} 条，共 ${totalPages} 页`;
+    pager.querySelector('[data-page-prev]').disabled=page<=1;
+    pager.querySelector('[data-page-next]').disabled=page>=totalPages;
+    const select=pager.querySelector('[data-page-size]');
+    if(select.value!==pageSizeValue) select.value=pageSizeValue;
+  }
 }
 
 const erpActions=(type)=>`<div class="erp-actions"><button class="secondary" data-bulk="${type}">批量粘贴</button><button class="secondary">导出</button><button class="primary" data-new="${type}">新增</button></div>`;
